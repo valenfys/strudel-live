@@ -14,5 +14,4 @@ await esbuild.build({
   logLevel: "info",
   minify: production,
   sourcemap: !production,
-  loader: { ".html": "text" },
 });

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Strudel</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font: 13px -apple-system, system-ui, sans-serif;
+      }
+      body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: #1e1e1e;
+        color: #ddd;
+      }
+      textarea {
+        flex: 1;
+        margin: 12px 12px 0;
+        padding: 8px;
+        resize: none;
+        background: #111;
+        color: #eee;
+        border: 1px solid #333;
+        font: 13px ui-monospace, Menlo, monospace;
+      }
+      footer {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 12px;
+      }
+      #status {
+        flex: 1;
+        color: #999;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      #status.error {
+        color: #f77;
+      }
+      input {
+        width: 48px;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="code" spellcheck="false" disabled></textarea>
+    <footer>
+      <span id="status">Loading Strudel…</span>
+      <label>Bars <input id="cycles" type="number" min="1" max="64" /></label>
+      <button id="preview" disabled>Preview</button>
+      <button id="cancel">Cancel</button>
+      <button id="render" disabled>Render ⌘↵</button>
+    </footer>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
