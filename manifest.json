@@ -1,6 +1,6 @@
 {
-    "name": "strudel-live",
-    "author": "Val Enfys &lt;val@valenfys.com&gt;",
+    "name": "Strudel Live",
+    "author": "Val Enfys",
     "entry": "dist/extension.js",
     "version": "1.0.0",
     "minimumApiVersion": "1.0.0"
