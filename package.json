@@ -11,7 +11,8 @@
     "build": "npm run typecheck && vite build && tsx build.ts --production",
     "build:dev": "npm run typecheck && vite build --mode development && tsx build.ts",
     "start": "npm run build:dev && ableton-extensions-cli run",
-    "package": "npm run build && ableton-extensions-cli package -i dist/ui"
+    "package": "npm run build && ableton-extensions-cli package -i dist/ui",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@ableton-extensions/sdk": "file:./vendor/ableton-extensions-sdk-1.0.0-beta.1.tgz",
@@ -21,6 +22,7 @@
     "@ableton-extensions/cli": "file:./vendor/ableton-extensions-cli-1.0.0-beta.1.tgz",
     "@types/node": "^24.1.0",
     "esbuild": "0.28.1",
+    "patch-package": "^8.0.1",
     "tsx": "^4.19.0",
     "typescript": "^5.9.3",
     "vite": "^6.0.0"

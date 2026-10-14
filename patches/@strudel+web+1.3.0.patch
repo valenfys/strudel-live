@@ -1,0 +1,13 @@
+diff --git a/node_modules/@strudel/web/dist/index.mjs b/node_modules/@strudel/web/dist/index.mjs
+index d2ac02b..63c3be5 100644
+--- a/node_modules/@strudel/web/dist/index.mjs
++++ b/node_modules/@strudel/web/dist/index.mjs
+@@ -6867,7 +6867,7 @@ const Ua = /* @__PURE__ */ new Map(), Ju = Symbol("nodePoolKey"), _D = (e) => !!
+   const n = Ua.get(e) ?? [];
+   let s, i = !1;
+   for (; n.length; )
+-    if (s = n.pop()?.deref(), s != null && HD(s)) {
++    if (s = n.pop()?.deref(), s != null && s.context === ve() && HD(s)) {
+       i = !0;
+       break;
+     }
