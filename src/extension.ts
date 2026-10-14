@@ -74,14 +74,15 @@ async function editClip(context: Context, clip: AudioClip<"1.0.0">) {
   const rendered = await edit(context, existing);
   if (!rendered) return;
 
-  // An audio clip's file can't be swapped, so replace the clip with a new one
-  // in the same place, keeping its name and color.
+  // An audio clip's file can't be swapped, so the new render becomes a new clip
+  // with the same name and color. In Session View it goes into the next empty
+  // slot so the original keeps playing until the new one is launched; in the
+  // Arrangement it replaces the original.
   const { name, color } = clip;
   const parent = clip.parent;
   let replacement: AudioClip<"1.0.0">;
   if (parent instanceof ClipSlot) {
-    await parent.deleteClip();
-    replacement = await placeInSlot(parent, rendered);
+    replacement = await placeInSlot(await nextEmptySlot(context, parent), rendered);
   } else if (parent instanceof AudioTrack) {
     const startTime = clip.startTime;
     await parent.deleteClip(clip);
@@ -151,6 +152,16 @@ function clipArgs({ filePath, data }: Rendered) {
       loopEnd: beats,
     },
   };
+}
+
+/** The first empty slot below `slot` on its track, adding a scene if needed. */
+async function nextEmptySlot(context: Context, slot: ClipSlot<"1.0.0">) {
+  const slots = (slot.parent as AudioTrack<"1.0.0">).clipSlots;
+  const empty = slots.slice(slots.indexOf(slot) + 1).find((s) => !s.clip);
+  if (empty) return empty;
+  const song = context.application.song;
+  await song.createScene(song.scenes.length);
+  return (slot.parent as AudioTrack<"1.0.0">).clipSlots.at(-1)!;
 }
 
 async function placeInSlot(slot: ClipSlot<"1.0.0">, rendered: Rendered) {

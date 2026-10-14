@@ -21,7 +21,10 @@ Learn about building extensions: https://ableton.github.io/extensions-sdk/
 
 - Right-click an empty clip slot on an audio track → **New Strudel clip…**
 - Right-click a Strudel audio clip → **Edit Strudel…** to change its code and
-  re-render it in place.
+  re-render it. In Session View the new version goes into the next empty slot
+  below (a scene is added if needed), so the original keeps playing; launch the
+  new clip to switch on the next quantization boundary. Arrangement clips are
+  replaced in place.
 
 ## How it works
 
