@@ -11,13 +11,13 @@ import {
   type ExtensionContext,
   type Handle,
 } from "@ableton-extensions/sdk";
+import { BEATS_PER_CYCLE } from "./protocol.js";
 import { runEditorSession, type RenderResult } from "./server.js";
 import { encodeStrudelWav, readStrudelData, type StrudelData } from "./wav.js";
 
 const DEFAULT_CODE = `note("c3 [e3 g3] a2 <f2 g2>")
   .s("sawtooth").lpf(1200).decay(.2).sustain(0)`;
 const DEFAULT_CYCLES = 4;
-const BEATS_PER_CYCLE = 4;
 
 type Context = ExtensionContext<"1.0.0">;
 

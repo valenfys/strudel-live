@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import { test as base, expect, type Page } from "@playwright/test";
-import { runEditorSession, type RenderResult, type SessionInput } from "../../src/server";
+import type { SessionInput } from "../../src/protocol";
+import { runEditorSession, type RenderResult } from "../../src/server";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const UI_ROOT = path.join(ROOT, "dist/ui");
