@@ -72,8 +72,7 @@ async function handle(uiRoot: string, req: http.IncomingMessage, res: http.Serve
     return void res.writeHead(404).end();
   }
   res.writeHead(200, {
-    "Content-Type":
-      CONTENT_TYPES[path.extname(file)] ?? "application/octet-stream",
+    "Content-Type": CONTENT_TYPES[path.extname(file)] ?? "application/octet-stream",
   });
   fs.createReadStream(file).pipe(res);
 }

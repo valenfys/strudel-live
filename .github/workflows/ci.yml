@@ -24,8 +24,8 @@ jobs:
           npm install --no-audit --no-fund
 
       - run: npm run typecheck
-      - run: npm run lint --if-present
-      - run: npm run format:check --if-present
+      - run: npm run lint
+      - run: npm run format:check
       - run: npm test
       - run: npm run build
 

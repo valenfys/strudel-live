@@ -1,0 +1,7 @@
+dist/
+vendor/
+patches/
+test-results/
+playwright-report/
+package-lock.json
+.idea/

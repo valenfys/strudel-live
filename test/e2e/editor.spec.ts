@@ -74,7 +74,11 @@ test("highlights active events while previewing", async ({ openEditor }) => {
 });
 
 test("renders the edited code to audio", async ({ openEditor }) => {
-  const { page, closed, result, typeLine } = await openEditor({ code: 'note("c3 e3").s("square")', cycles: 2, bpm: 120 });
+  const { page, closed, result, typeLine } = await openEditor({
+    code: 'note("c3 e3").s("square")',
+    cycles: 2,
+    bpm: 120,
+  });
 
   await typeLine("  .gain(0.5)");
   await page.keyboard.press("Escape");

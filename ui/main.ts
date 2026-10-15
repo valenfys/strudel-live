@@ -2,12 +2,24 @@ import { highlightSelectionMatches, search, searchKeymap } from "@codemirror/sea
 import { setDiagnostics } from "@codemirror/lint";
 import { StateEffect } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
-import { codemirrorSettings, defaultSettings, StrudelMirror, type EditorSettings, type Keybindings } from "@strudel/codemirror";
+import {
+  codemirrorSettings,
+  defaultSettings,
+  StrudelMirror,
+  type EditorSettings,
+  type Keybindings,
+} from "@strudel/codemirror";
 import { evalScope, type Pattern } from "@strudel/core";
 import { getDrawContext } from "@strudel/draw";
 import { miniAllStrings } from "@strudel/mini";
 import { transpiler } from "@strudel/transpiler";
-import { getAudioContext, initAudioOnFirstClick, registerSynthSounds, samples, webaudioOutput } from "@strudel/webaudio";
+import {
+  getAudioContext,
+  initAudioOnFirstClick,
+  registerSynthSounds,
+  samples,
+  webaudioOutput,
+} from "@strudel/webaudio";
 import { cyclesPerSecond, RENDER_PATH, SESSION_PATH, type SessionInput } from "../src/protocol";
 import { encodeRenderBody } from "../src/renderBody";
 import { closeWithResult } from "./bridge";
@@ -165,11 +177,7 @@ async function main() {
   updateEditorSettings({});
   keymapSelect.value = codemirrorSettings.get().keybindings;
   mirror.editor.dispatch({
-    effects: StateEffect.appendConfig.of([
-      search({ top: true }),
-      highlightSelectionMatches(),
-      keymap.of(searchKeymap),
-    ]),
+    effects: StateEffect.appendConfig.of([search({ top: true }), highlightSelectionMatches(), keymap.of(searchKeymap)]),
   });
   mirror.editor.focus();
 

@@ -33,7 +33,9 @@ describe("render body", () => {
 
   it("keeps non-ASCII code intact", () => {
     const code = '// ♪ héllo\nn("0 2").scale("C:mäjor")';
-    expect(decodeRenderBody(encodeRenderBody({ ...header, code }, [new Float32Array(1), new Float32Array(1)])).code).toBe(code);
+    expect(
+      decodeRenderBody(encodeRenderBody({ ...header, code }, [new Float32Array(1), new Float32Array(1)])).code,
+    ).toBe(code);
   });
 
   it("decodes from a pooled Node Buffer", () => {

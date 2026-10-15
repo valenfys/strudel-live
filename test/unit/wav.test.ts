@@ -6,7 +6,7 @@ const data: StrudelData = { version: 1, code: 's("bd sd")', cycles: 4, bpm: 120 
 
 function chunkIds(wav: Buffer): string[] {
   const ids: string[] = [];
-  for (let offset = 12; offset + 8 <= wav.length; ) {
+  for (let offset = 12; offset + 8 <= wav.length;) {
     const size = wav.readUInt32LE(offset + 4);
     ids.push(wav.toString("ascii", offset, offset + 4));
     offset += 8 + size + (size % 2);
