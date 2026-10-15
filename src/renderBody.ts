@@ -22,6 +22,8 @@ export interface RenderHeader {
 export interface StemHeader {
   label: string;
   scene?: number;
+  /** The clip's name, when it differs from its track's (`hats: rollinghats`). */
+  clip?: string;
 }
 
 export interface RenderResult extends RenderHeader {

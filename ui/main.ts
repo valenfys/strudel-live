@@ -24,7 +24,7 @@ import { cyclesPerSecond, RENDER_PATH, SESSION_PATH, type SessionInput } from ".
 import { encodeRenderBody } from "../src/renderBody";
 import { closeWithResult } from "./bridge";
 import { queryOnsets, renderOffline } from "./render";
-import { definedScenes, previewScene, resetScenes, scenes } from "./scenes";
+import { definedScenes, partVariables, previewScene, resetScenes, scenes } from "./scenes";
 import { hasLabels, splitStems, tagStems, type Stem } from "./stems";
 
 // Overrides @strudel/codemirror's defaults (which suit strudel.cc's settings
@@ -96,7 +96,7 @@ async function render() {
   try {
     stopPreview();
     const pattern = await evaluatePattern(code, false);
-    const { stems, sceneNames } = stemsToRender(pattern, cycles);
+    const { stems, sceneNames } = stemsToRender(code, pattern, cycles);
     const buffers: AudioBuffer[] = [];
     for (const [i, stem] of stems.entries()) {
       const name = stem.scene === undefined ? stem.label : `${sceneNames![stem.scene]} ${stem.label}`;
@@ -114,7 +114,7 @@ async function render() {
           cycles,
           sampleRate,
           channels,
-          stems: labelled ? stems.map(({ label, scene }) => ({ label, scene })) : undefined,
+          stems: labelled ? stems.map(({ label, scene, clip }) => ({ label, scene, clip })) : undefined,
           scenes: sceneNames,
         },
         buffers.map((buffer) => Array.from({ length: channels }, (_, c) => buffer.getChannelData(c))),
@@ -132,13 +132,18 @@ async function render() {
 
 interface StemToRender extends Stem {
   scene?: number;
+  clip?: string;
 }
 
 /**
  * What to render: a stem per part of each scene, a stem per label, or a single
  * mix (one unnamed stem).
  */
-function stemsToRender(pattern: Pattern, cycles: number): { stems: StemToRender[]; sceneNames?: string[] } {
+function stemsToRender(
+  code: string,
+  pattern: Pattern,
+  cycles: number,
+): { stems: StemToRender[]; sceneNames?: string[] } {
   const scenes = definedScenes();
   if (!scenes) {
     // Query once, so random choices are the same in every stem.
@@ -147,8 +152,13 @@ function stemsToRender(pattern: Pattern, cycles: number): { stems: StemToRender[
   }
   if (hasLabels()) throw new Error("Use either labels or scenes(), not both");
   if (view !== "session") throw new Error("scenes() only works in Session View");
+  const variables = partVariables(code);
   const stems = scenes.flatMap((scene, i) =>
-    scene.parts.map(([label, part]) => ({ label, scene: i, haps: queryOnsets(part, cycles, bpm) })),
+    scene.parts.map(([label, part]) => {
+      const variable = variables.get(scene.name)?.get(label);
+      const clip = variable !== label ? variable : undefined;
+      return { label, scene: i, clip, haps: queryOnsets(part, cycles, bpm) };
+    }),
   );
   if (!stems.length) throw new Error("The scenes have no parts");
   return { stems, sceneNames: scenes.map((scene) => scene.name) };

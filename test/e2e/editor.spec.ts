@@ -152,6 +152,8 @@ test("renders the starter code to a stem per part of each scene", async ({ openE
     "drop/hats",
     "drop/bass",
   ]);
+  // Only the variant is named after its variable rather than its track.
+  expect(rendered.stems!.filter((stem) => stem.clip)).toEqual([{ label: "hats", scene: 2, clip: "rollinghats" }]);
   // The tests don't load sample audio, so only the synth parts are audible.
   const peaks = new Map(stems.map((stem, i) => [stem, peak(rendered.samples[i])]));
   for (const stem of ["intro/chords", "groove/bass", "groove/chords", "drop/bass"]) {
@@ -183,6 +185,26 @@ test("renders a stem per part of each scene", async ({ openEditor }) => {
     expect(samples.length).toBe(2 * 48000 * 2);
     expect(peak(samples)).toBeGreaterThan(0.01);
   }
+});
+
+test("names clips after the variable a part was written with", async ({ openEditor }) => {
+  const { page, closed, result } = await openEditor({
+    code: [
+      'let lead = note("c4").s("square")',
+      'let lead2 = note("e4").s("square")',
+      // Strudel reads double-quoted strings as mini-notation, so quoted keys use single quotes.
+      'scenes({ a: { lead }, \'b\': { lead: lead2 }, c: { lead: note("g4").s("square") } })',
+    ].join("\n"),
+  });
+
+  await page.locator("#render").click();
+  expect(await closed).toBe("rendered");
+
+  expect((await result)!.stems).toEqual([
+    { label: "lead", scene: 0 },
+    { label: "lead", scene: 1, clip: "lead2" },
+    { label: "lead", scene: 2 },
+  ]);
 });
 
 test("previews the scene chosen in the picker", async ({ openEditor }) => {
