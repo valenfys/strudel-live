@@ -73,6 +73,10 @@ audio clips. See README.md for usage and the scripts.
   a branch, retarget any PRs stacked on it (`gh pr list --base <branch>`):
   deleting a base branch closes them.
 - Commit and push as you go, in focused commits.
+- Track known limitations, follow-ups and checks still to do in Live as GitHub
+  issues rather than only mentioning them; check open issues first (e.g. #7
+  lists the remaining manual checks in Live). Close issues when a PR resolves
+  them.
 - `.idea/` is tracked on purpose (WebStorm project files); don't gitignore it.
 - Use caret ranges in `package.json`, never exact pins; `package-lock.json`
   pins versions. This includes patched packages.
