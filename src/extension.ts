@@ -172,9 +172,11 @@ async function place(
     if (!track) {
       const beats = r.data.cycles * BEATS_PER_CYCLE;
       const used = new Set(tracks.values());
-      track = freeTrack(context, position, beats, r.data.stem, fallback, used) ?? (await song.createAudioTrack());
-      if (r.data.stem) track.name = r.data.stem;
-      tracks.set(label, track);
+      const found: AudioTrack<"1.0.0"> =
+        freeTrack(context, position, beats, r.data.stem, fallback, used) ?? (await song.createAudioTrack());
+      if (r.data.stem) found.name = r.data.stem;
+      tracks.set(label, found);
+      track = found;
     }
     const clip = await placeAt(track, position, r);
     // A stem is named after its label; a clip without one keeps its name.
