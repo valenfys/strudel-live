@@ -134,12 +134,14 @@ async function place(
 ) {
   const keyOf = (r: Rendered) => r.data.stem ?? "";
   const keys = new Set(rendered.map(keyOf));
+  // Read before deleting anything: a deleted clip's properties are gone.
+  const looks = new Map([...current].map(([key, { clip }]) => [key, { name: clip.name, color: clip.color }]));
+  const color = [...looks.values()][0]?.color;
   const used = new Set<AudioTrack<"1.0.0">>();
   for (const [key, { track, clip }] of current) {
     if (keys.has(key)) used.add(track);
     else await deleteClip(track, position, clip);
   }
-  const color = [...current.values()][0]?.clip.color;
 
   for (const r of rendered) {
     const previous = current.get(keyOf(r));
@@ -156,8 +158,9 @@ async function place(
     }
     used.add(track);
     const clip = await placeAt(track, position, r);
-    clip.name = previous?.clip.name ?? r.data.stem ?? "Strudel";
-    const clipColor = previous?.clip.color ?? color;
+    const look = looks.get(keyOf(r));
+    clip.name = look?.name || r.data.stem || "Strudel";
+    const clipColor = look?.color ?? color;
     if (clipColor !== undefined) clip.color = clipColor;
   }
 }
