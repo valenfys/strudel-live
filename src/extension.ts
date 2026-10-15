@@ -135,7 +135,7 @@ async function place(
   const keyOf = (r: Rendered) => r.data.stem ?? "";
   const keys = new Set(rendered.map(keyOf));
   // Read before deleting anything: a deleted clip's properties are gone.
-  const looks = new Map([...current].map(([key, { clip }]) => [key, { name: clip.name, color: clip.color }]));
+  const looks = new Map([...current].map(([key, { clip }]) => [key, { name: givenName(clip), color: clip.color }]));
   const color = [...looks.values()][0]?.color;
   const used = new Set<AudioTrack<"1.0.0">>();
   for (const [key, { track, clip }] of current) {
@@ -163,6 +163,14 @@ async function place(
     const clipColor = look?.color ?? color;
     if (clipColor !== undefined) clip.color = clipColor;
   }
+}
+
+/**
+ * The clip's name, or "" if it only has Live's default: its file's name. (An
+ * earlier bug left re-rendered clips with that default.)
+ */
+function givenName(clip: AudioClip<"1.0.0">): string {
+  return clip.name === path.parse(clip.filePath).name ? "" : clip.name;
 }
 
 /**
