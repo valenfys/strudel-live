@@ -40,15 +40,11 @@ function register(
   run: (handle: Handle) => Promise<void>,
 ) {
   context.commands.registerCommand(commandId, (handle) => {
-    run(handle as Handle).catch((error) =>
-      console.error(`${commandId} failed:`, error),
-    );
+    run(handle as Handle).catch((error) => console.error(`${commandId} failed:`, error));
   });
   context.ui
     .registerContextMenuAction(scope, title, commandId)
-    .catch((error) =>
-      console.error(`Failed to register ${scope} context menu action:`, error),
-    );
+    .catch((error) => console.error(`Failed to register ${scope} context menu action:`, error));
 }
 
 async function newClip(context: Context, slot: ClipSlot<"1.0.0">) {
@@ -101,35 +97,22 @@ interface Rendered {
 }
 
 /** Opens the editor; if the user renders, writes the WAV into the project. */
-async function edit(
-  context: Context,
-  initial: Pick<StrudelData, "code" | "cycles">,
-): Promise<Rendered | undefined> {
+async function edit(context: Context, initial: Pick<StrudelData, "code" | "cycles">): Promise<Rendered | undefined> {
   const bpm = context.application.song.tempo;
-  const result = await runEditorSession({ ...initial, bpm }, (url) =>
-    context.ui.showModalDialog(url, 960, 640),
-  );
+  const result = await runEditorSession({ ...initial, bpm }, (url) => context.ui.showModalDialog(url, 960, 640));
   if (!result) return undefined;
   const data: StrudelData = { version: 1, code: result.code, cycles: result.cycles, bpm };
   return { filePath: await writeIntoProject(context, result, data), data };
 }
 
-async function writeIntoProject(
-  context: Context,
-  result: RenderResult,
-  data: StrudelData,
-): Promise<string> {
+async function writeIntoProject(context: Context, result: RenderResult, data: StrudelData): Promise<string> {
   // Live only provides a temp directory when the host is given one, which
   // `ableton-extensions-cli run` doesn't do by default.
-  const tempDirectory =
-    context.environment.tempDirectory ?? path.join(os.tmpdir(), "strudel-live");
+  const tempDirectory = context.environment.tempDirectory ?? path.join(os.tmpdir(), "strudel-live");
   fs.mkdirSync(tempDirectory, { recursive: true });
   const fileName = `strudel-${randomUUID().slice(0, 8)}-${Math.round(data.bpm)}bpm.wav`;
   const tempPath = path.join(tempDirectory, fileName);
-  fs.writeFileSync(
-    tempPath,
-    encodeStrudelWav(result.samples, result.sampleRate, result.channels, data),
-  );
+  fs.writeFileSync(tempPath, encodeStrudelWav(result.samples, result.sampleRate, result.channels, data));
   const imported = await context.resources.importIntoProject(tempPath);
   fs.rmSync(tempPath, { force: true });
 
@@ -170,11 +153,7 @@ async function placeInSlot(slot: ClipSlot<"1.0.0">, rendered: Rendered) {
   return clip;
 }
 
-async function placeInArrangement(
-  track: AudioTrack<"1.0.0">,
-  startTime: number,
-  rendered: Rendered,
-) {
+async function placeInArrangement(track: AudioTrack<"1.0.0">, startTime: number, rendered: Rendered) {
   const args = clipArgs(rendered);
   const clip = await track.createAudioClip({
     ...args,

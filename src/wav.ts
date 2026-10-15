@@ -48,10 +48,7 @@ export function encodeStrudelWav(
     chunk("fmt ", fmt),
     chunk("fact", fact),
     chunk(STRUDEL_CHUNK_ID, Buffer.from(JSON.stringify(data), "utf8")),
-    chunk(
-      "data",
-      Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength),
-    ),
+    chunk("data", Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength)),
   ]);
 
   const riff = Buffer.alloc(8);
@@ -62,11 +59,7 @@ export function encodeStrudelWav(
 
 /** Returns the Strudel data embedded in a WAV file, or null if there is none. */
 export function readStrudelData(wav: Buffer): StrudelData | null {
-  if (
-    wav.length < 12 ||
-    wav.toString("ascii", 0, 4) !== "RIFF" ||
-    wav.toString("ascii", 8, 12) !== "WAVE"
-  ) {
+  if (wav.length < 12 || wav.toString("ascii", 0, 4) !== "RIFF" || wav.toString("ascii", 8, 12) !== "WAVE") {
     return null;
   }
   let offset = 12;

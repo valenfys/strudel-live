@@ -2,7 +2,13 @@ import { highlightSelectionMatches, search, searchKeymap } from "@codemirror/sea
 import { setDiagnostics } from "@codemirror/lint";
 import { StateEffect } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
-import { codemirrorSettings, defaultSettings, StrudelMirror, type EditorSettings, type Keybindings } from "@strudel/codemirror";
+import {
+  codemirrorSettings,
+  defaultSettings,
+  StrudelMirror,
+  type EditorSettings,
+  type Keybindings,
+} from "@strudel/codemirror";
 import { evalScope, type Pattern } from "@strudel/core";
 import { getDrawContext } from "@strudel/draw";
 import { miniAllStrings } from "@strudel/mini";
@@ -102,11 +108,7 @@ async function evaluatePattern(code: string, play: boolean): Promise<Pattern> {
 async function renderOffline(pattern: Pattern, cycles: number): Promise<AudioBuffer> {
   const cps = bpm / 60 / BEATS_PER_CYCLE;
   await getAudioContext().close();
-  const context = new OfflineAudioContext(
-    CHANNELS,
-    Math.round((cycles / cps) * SAMPLE_RATE),
-    SAMPLE_RATE,
-  );
+  const context = new OfflineAudioContext(CHANNELS, Math.round((cycles / cps) * SAMPLE_RATE), SAMPLE_RATE);
   setAudioContext(context);
   // Let superdough lazily create a controller for the offline context.
   setSuperdoughAudioController(null);
@@ -229,11 +231,7 @@ async function main() {
   updateEditorSettings({});
   keymapSelect.value = codemirrorSettings.get().keybindings;
   mirror.editor.dispatch({
-    effects: StateEffect.appendConfig.of([
-      search({ top: true }),
-      highlightSelectionMatches(),
-      keymap.of(searchKeymap),
-    ]),
+    effects: StateEffect.appendConfig.of([search({ top: true }), highlightSelectionMatches(), keymap.of(searchKeymap)]),
   });
   mirror.editor.focus();
 
