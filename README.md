@@ -23,8 +23,8 @@ Learn about building extensions: https://ableton.github.io/extensions-sdk/
 
 - Right-click an empty clip slot on an audio track → **New Strudel clip…**
 - Right-click a Strudel audio clip → **Edit Strudel…** to change its code and
-  re-render it. The clip is replaced in place, keeping its name and color (a
-  playing Session clip stops).
+  re-render it. The clip is replaced in place, keeping its color (a playing
+  Session clip stops).
 
 ### Stems
 
@@ -36,6 +36,8 @@ kick: s("bd*4");
 bass: note("<c2 ab1>(3,8)").s("sawtooth");
 ```
 
+- Each stem's clip is named after its label, on every render. A clip from
+  code without labels keeps the name you give it.
 - The stems sit side by side: in the same Session row, or at the same
   Arrangement position. Editing any of them re-renders all of them in place.
 - A new label goes on a free track with that name, or a new track. A label
