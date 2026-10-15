@@ -17,6 +17,7 @@ audio clips. See README.md for usage and the scripts.
 - `ui/` is the editor dialog (Vite, runs in Live's web view).
   - `main.ts`: DOM wiring and editor setup.
   - `stems.ts`: splits a pattern's events by label, one stem each.
+  - `scenes.ts`: the `scenes()` function exposed to Strudel code.
   - `render.ts`: renders patterns offline with an `OfflineAudioContext`; one
     cycle = one 4/4 bar.
   - `bridge.ts`: Live's dialog bridge (`closeWithResult`).
@@ -42,6 +43,10 @@ audio clips. See README.md for usage and the scripts.
   named after the label. A group's stems share a `group` id in their `strd`
   chunk and sit in the same Session row or at the same Arrangement position.
   `ui/stems.ts` wraps Strudel's `.p()` to tag events with their label.
+- `scenes({ verse: { kick, hat } })` (`ui/scenes.ts`) lays one piece of code out
+  as Session scenes: rows match scenes by position, and each clip's `strd`
+  stores its scene index and all scene names, so editing any clip finds the
+  group's block of rows.
 
 ## Gotchas
 

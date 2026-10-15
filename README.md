@@ -47,6 +47,37 @@ bass: note("<c2 ab1>(3,8)").s("sawtooth");
   track.
 - Code without labels renders a single clip, as before.
 
+### Scenes
+
+In Session View, one piece of code can fill several scenes. Define each part
+once, then list which parts play in each scene:
+
+```js
+let kick = s("bd*4");
+let hat = s("hh*8").gain(0.6);
+let rollinghat = s("hh*16").gain(0.4);
+let bass = note("<c2 ab1>(3,8)").s("sawtooth");
+
+scenes({
+  intro: { hat },
+  verse: { kick, hat, bass },
+  drop: { kick, hat: rollinghat, bass }, // rollinghat goes on the hat track
+});
+```
+
+- Each scene is a row, named after it, and each part is a track, named after
+  its key (so `{ kick }` puts `kick` on a `kick` track). A part left out of a
+  scene has no clip there, so launching that scene stops its track.
+- Rows match scenes by position: renaming a scene in code renames the Live
+  scene, and reordering scenes moves their clips. Scenes added to the code are
+  inserted below the group, moving the rest of the set down. A scene removed
+  from the code has its clips deleted, but the Live scene stays.
+- Every scene is rendered as its own loop of the editor's Bars length.
+- Pick which scene **Preview** plays with the Scene menu, shown once the code
+  has been evaluated.
+- For now, code uses either labels or `scenes()`, not both, and scenes only
+  work in Session View.
+
 ## How it works
 
 - `src/extension.ts` registers the context menu actions and places rendered
