@@ -47,4 +47,9 @@ npm run package            # build for production + create a .ablx archive
 
 ## License
 
-Strudel is licensed under AGPL-3.0-or-later, and this extension bundles it.
+This project is licensed under [AGPL-3.0-or-later](LICENSE), the same license
+as [Strudel](https://codeberg.org/uzu/strudel), which it bundles.
+
+The Ableton Extensions SDK and CLI are proprietary and are not included in
+this repository. They are installed from `vendor/`, which you populate with
+your own copy of the SDK.
