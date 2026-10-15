@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import { test as base, expect, type Page } from "@playwright/test";
-import { runEditorSession, type RenderResult, type SessionInput } from "../../src/server";
+import type { SessionInput } from "../../src/protocol";
+import { runEditorSession, type RenderResult } from "../../src/server";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const UI_ROOT = path.join(ROOT, "dist/ui");
@@ -35,7 +36,7 @@ export const test = base.extend<{ openEditor: (input?: Partial<SessionInput>) =>
       route.request().url().endsWith("/strudel.json") ? route.fulfill({ path: SAMPLE_MAP }) : route.abort(),
     );
 
-    // Stand in for Live's dialog bridge (see closeWithResult in ui/main.ts).
+    // Stand in for Live's dialog bridge (see ui/bridge.ts).
     let close!: (result: string) => void;
     const closed = new Promise<string>((resolve) => (close = resolve));
     await page.exposeFunction("__closeDialog", (result: string) => close(result));

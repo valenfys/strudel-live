@@ -5,6 +5,7 @@ import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import { URL } from "node:url";
 import { TextDecoder } from "node:util";
+import { RENDER_PATH, SESSION_PATH, type SessionInput } from "./protocol.js";
 import { decodeRenderBody, type RenderResult } from "./renderBody.js";
 
 export type { RenderResult } from "./renderBody.js";
@@ -22,12 +23,6 @@ const CONTENT_TYPES: Record<string, string> = {
   ".svg": "image/svg+xml",
   ".wasm": "application/wasm",
 };
-
-export interface SessionInput {
-  code: string;
-  cycles: number;
-  bpm: number;
-}
 
 interface Session {
   input: SessionInput;
@@ -58,13 +53,13 @@ async function handle(uiRoot: string, req: http.IncomingMessage, res: http.Serve
   const url = new URL(req.url ?? "/", "http://localhost");
   const session = sessions.get(url.searchParams.get("session") ?? "");
 
-  if (url.pathname === "/api/session" && req.method === "GET") {
+  if (url.pathname === SESSION_PATH && req.method === "GET") {
     if (!session) return void res.writeHead(404).end();
     res.writeHead(200, { "Content-Type": "application/json" });
     return void res.end(JSON.stringify(session.input));
   }
 
-  if (url.pathname === "/api/render" && req.method === "POST") {
+  if (url.pathname === RENDER_PATH && req.method === "POST") {
     if (!session) return void res.writeHead(404).end();
     session.result = decodeRenderBody(await readBody(req), new TextDecoder());
     return void res.writeHead(204).end();

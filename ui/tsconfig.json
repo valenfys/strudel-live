@@ -8,5 +8,5 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["*.ts", "../src/renderBody.ts"]
+  "include": ["*.ts", "../src/renderBody.ts", "../src/protocol.ts"]
 }

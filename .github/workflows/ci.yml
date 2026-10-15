@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # The Ableton SDK and CLI are proprietary and not in the repo (see
+      # README), so CI swaps in a stub SDK and drops the CLI.
+      - name: Install dependencies with the SDK stub
+        run: |
+          npm pkg set 'dependencies.@ableton-extensions/sdk=file:./ci/ableton-sdk-stub'
+          npm pkg delete 'devDependencies.@ableton-extensions/cli'
+          npm install --no-audit --no-fund
+
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run build
+
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          CI: true
