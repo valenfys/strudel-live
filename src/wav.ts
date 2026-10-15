@@ -14,6 +14,13 @@ export interface StrudelData {
   cycles: number;
   /** Song tempo at render time. */
   bpm: number;
+  /** The label of the part this clip holds, when the code has labels. */
+  stem?: string;
+  /**
+   * Shared by the stems of one render, which sit in the same Session row or at
+   * the same Arrangement position on their own tracks.
+   */
+  group?: string;
 }
 
 function chunk(id: string, payload: Buffer): Buffer {

@@ -23,7 +23,8 @@ import {
 import { cyclesPerSecond, RENDER_PATH, SESSION_PATH, type SessionInput } from "../src/protocol";
 import { encodeRenderBody } from "../src/renderBody";
 import { closeWithResult } from "./bridge";
-import { renderOffline } from "./render";
+import { queryOnsets, renderOffline } from "./render";
+import { splitStems, tagStems } from "./stems";
 
 // Overrides @strudel/codemirror's defaults (which suit strudel.cc's settings
 // panel). Only the keymap is user-selectable here.
@@ -91,13 +92,21 @@ async function render() {
   try {
     stopPreview();
     const pattern = await evaluatePattern(code, false);
-    const buffer = await renderOffline(pattern, cycles, bpm, setStatus);
+    // Query once, so random choices are the same in every stem.
+    const haps = queryOnsets(pattern, cycles, bpm);
+    const stems = splitStems(haps);
+    const buffers: AudioBuffer[] = [];
+    for (const [i, stem] of (stems ?? [{ label: "", haps }]).entries()) {
+      const prefix = stems ? `${stem.label} (${i + 1}/${stems.length}): ` : "";
+      buffers.push(await renderOffline(stem.haps, cycles, bpm, (message) => setStatus(prefix + message)));
+    }
+    const { sampleRate, numberOfChannels: channels } = buffers[0];
     setStatus("Sending to Live…");
     const response = await fetch(`${RENDER_PATH}?session=${session}`, {
       method: "POST",
       body: encodeRenderBody(
-        { code, cycles, sampleRate: buffer.sampleRate, channels: buffer.numberOfChannels },
-        Array.from({ length: buffer.numberOfChannels }, (_, c) => buffer.getChannelData(c)),
+        { code, cycles, sampleRate, channels, stems: stems?.map((stem) => stem.label) },
+        buffers.map((buffer) => Array.from({ length: channels }, (_, c) => buffer.getChannelData(c))),
         new TextEncoder(),
       ),
     });
@@ -165,6 +174,7 @@ async function main() {
     getTime: () => getAudioContext().currentTime,
     transpiler,
     onToggle: setPreviewing,
+    beforeEval: tagStems,
     onEvalError: (error) => {
       lastEvalError = error;
       showEvalError(error);

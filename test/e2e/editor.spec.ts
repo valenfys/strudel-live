@@ -1,8 +1,11 @@
+import { STARTER_CODE, STARTER_CYCLES } from "../../src/starter";
 import { DEFAULT_CODE, expect, test } from "./fixtures";
 
 // Spans the editor marks while their events are playing (see highlight.mjs in
 // @strudel/codemirror).
 const ACTIVE_EVENT = '.cm-line span[style*="outline"]';
+
+const peak = (samples: Float32Array) => samples.reduce((max, sample) => Math.max(max, Math.abs(sample)), 0);
 
 test("shows the session's code, bars and tempo", async ({ openEditor }) => {
   const { page, content } = await openEditor({ code: '$: s("bd sd")\n$: note("c e g")', cycles: 3, bpm: 98 });
@@ -92,12 +95,54 @@ test("renders the edited code to audio", async ({ openEditor }) => {
     sampleRate: 48000,
     channels: 2,
   });
+  expect(rendered.stems).toBeUndefined();
+  expect(rendered.samples).toHaveLength(1);
   // 2 bars of 4/4 at 120 BPM is 4 seconds.
-  expect(rendered.samples.length).toBe(4 * 48000 * 2);
-  const peak = rendered.samples.reduce((max, sample) => Math.max(max, Math.abs(sample)), 0);
+  expect(rendered.samples[0].length).toBe(4 * 48000 * 2);
   // Audible, and plausible for a square wave at half gain (not garbage).
-  expect(peak).toBeGreaterThan(0.01);
-  expect(peak).toBeLessThan(1);
+  expect(peak(rendered.samples[0])).toBeGreaterThan(0.01);
+  expect(peak(rendered.samples[0])).toBeLessThan(1);
+});
+
+test("renders each label to its own stem", async ({ openEditor }) => {
+  const { page, closed, result } = await openEditor({
+    code: [
+      'lead: note("c4 e4").s("square").gain(.5)',
+      '_muted: note("c3").s("sawtooth")',
+      '$: note("g2").s("triangle")',
+      'bass: note("c2*2").s("sawtooth").gain(.5)',
+    ].join("\n"),
+    cycles: 1,
+    bpm: 120,
+  });
+
+  await page.locator("#render").click();
+  expect(await closed).toBe("rendered");
+
+  const rendered = (await result)!;
+  expect(rendered.stems).toEqual(["lead", "muted", "Strudel 1", "bass"]);
+  // 1 bar of 4/4 at 120 BPM is 2 seconds.
+  for (const samples of rendered.samples) expect(samples.length).toBe(2 * 48000 * 2);
+  const [lead, muted, anonymous, bass] = rendered.samples.map(peak);
+  expect(lead).toBeGreaterThan(0.01);
+  expect(muted).toBe(0);
+  expect(anonymous).toBeGreaterThan(0.01);
+  expect(bass).toBeGreaterThan(0.01);
+});
+
+test("renders the starter code to a stem per part", async ({ openEditor }) => {
+  const { page, closed, result } = await openEditor({ code: STARTER_CODE, cycles: STARTER_CYCLES });
+
+  await page.locator("#render").click();
+  expect(await closed).toBe("rendered");
+
+  const rendered = (await result)!;
+  expect(rendered.stems).toEqual(["kick", "snare", "hats", "bass", "chords"]);
+  // The tests don't load sample audio, so only the synth parts are audible.
+  const peaks = rendered.samples.map(peak);
+  expect(peaks[3]).toBeGreaterThan(0.01);
+  expect(peaks[4]).toBeGreaterThan(0.01);
+  for (const p of peaks) expect(p).toBeLessThan(1);
 });
 
 test("cancelling closes without a render", async ({ openEditor }) => {

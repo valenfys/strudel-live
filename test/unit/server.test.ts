@@ -40,7 +40,7 @@ describe("runEditorSession", () => {
         expect(got.status).toBe(200);
         expect(JSON.parse(got.body)).toEqual(input);
 
-        const body = encodeRenderBody(header, [new Float32Array([0.5, -0.5])], new TextEncoder());
+        const body = encodeRenderBody(header, [[new Float32Array([0.5, -0.5])]], new TextEncoder());
         expect((await request(`${origin}/api/render${session}`, "POST", body)).status).toBe(204);
         return "rendered";
       },
@@ -48,6 +48,6 @@ describe("runEditorSession", () => {
     );
 
     expect(result).toMatchObject(header);
-    expect(Array.from(result!.samples)).toEqual([0.5, -0.5]);
+    expect(Array.from(result!.samples[0])).toEqual([0.5, -0.5]);
   });
 });

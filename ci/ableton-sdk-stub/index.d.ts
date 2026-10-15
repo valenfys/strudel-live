@@ -13,6 +13,7 @@ export interface ExtensionContext<Version extends string = string> {
     registerContextMenuAction(scope: string, title: string, commandId: string): Promise<unknown>;
     showModalDialog(url: string, width: number, height: number): Promise<string>;
   };
+  application: { song: { tracks: LiveObject<Version>[]; [key: string]: any }; [key: string]: any };
   getObjectFromHandle<T extends LiveObject<Version>>(handle: Handle, type: abstract new (...args: never) => T): T;
   [key: string]: any;
 }
@@ -26,4 +27,5 @@ export declare class ClipSlot<Version extends string = string> extends LiveObjec
 export declare class AudioClip<Version extends string = string> extends LiveObject<Version> {}
 export declare class AudioTrack<Version extends string = string> extends LiveObject<Version> {
   clipSlots: ClipSlot<Version>[];
+  arrangementClips: LiveObject<Version>[];
 }

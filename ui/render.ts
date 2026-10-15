@@ -1,4 +1,4 @@
-import type { Pattern } from "@strudel/core";
+import type { Hap, Pattern } from "@strudel/core";
 import {
   getAudioContext,
   initAudio,
@@ -12,10 +12,19 @@ import { cyclesPerSecond } from "../src/protocol";
 const SAMPLE_RATE = 48000;
 const CHANNELS = 2;
 
+/** The events of `cycles` cycles that start within them, in onset order. */
+export function queryOnsets(pattern: Pattern, cycles: number, bpm: number): Hap[] {
+  // Ascending onset order matters for controls like `cut`.
+  return pattern
+    .queryArc(0, cycles, { _cps: cyclesPerSecond(bpm) })
+    .filter((hap) => hap.hasOnset())
+    .sort((a, b) => a.whole!.begin.valueOf() - b.whole!.begin.valueOf());
+}
+
 // Based on renderPatternAudio from @strudel/webaudio, which downloads the
 // result instead of returning it.
 export async function renderOffline(
-  pattern: Pattern,
+  haps: Hap[],
   cycles: number,
   bpm: number,
   onProgress: (message: string) => void,
@@ -28,11 +37,6 @@ export async function renderOffline(
   setSuperdoughAudioController(null);
   try {
     await initAudio({ multiChannelOrbits: false });
-    // Ascending onset order matters for controls like `cut`.
-    const haps = pattern
-      .queryArc(0, cycles, { _cps: cps })
-      .filter((hap) => hap.hasOnset())
-      .sort((a, b) => a.whole!.begin.valueOf() - b.whole!.begin.valueOf());
     for (const [i, hap] of haps.entries()) {
       onProgress(`Scheduling ${i + 1}/${haps.length}…`);
       const onset = hap.whole!.begin.valueOf() / cps;
