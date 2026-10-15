@@ -132,10 +132,6 @@ async function writeIntoProject(
   );
   const imported = await context.resources.importIntoProject(tempPath);
   fs.rmSync(tempPath, { force: true });
-
-  // Spike check: does the imported copy still carry the code?
-  const survived = readStrudelData(fs.readFileSync(imported)) !== null;
-  console.log(`Imported ${imported} (strd chunk ${survived ? "intact" : "MISSING"})`);
   return imported;
 }
 
