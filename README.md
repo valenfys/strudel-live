@@ -43,7 +43,14 @@ npm start                  # build + run in Live's Extension Host
 npm run build              # production build of the extension and UI
 npm run build:dev          # dev build (sourcemaps, not minified)
 npm run package            # build for production + create a .ablx archive
+npm test                   # unit tests (Vitest)
+npm run test:e2e           # build the UI + run the editor's browser tests (Playwright)
 ```
+
+The browser tests drive the editor dialog in headless Chromium against the
+real editor server, standing in for Live's dialog bridge. Install the browser
+once with `npx playwright install chromium`. Anything that needs Live itself
+still has to be checked by hand with `npm start`.
 
 ## License
 

@@ -1,0 +1,7 @@
+{
+  "_base": "https://raw.githubusercontent.com/tidalcycles/dirt-samples/main/",
+  "bd": ["bd/BT0A0A7.wav"],
+  "sd": ["sd/rytm-01-classic.wav"],
+  "hh": ["hh/000_hh3closedhh.wav"],
+  "casio": ["casio/high.wav", "casio/low.wav"]
+}
