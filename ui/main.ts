@@ -19,6 +19,7 @@ import {
   superdough,
   webaudioOutput,
 } from "@strudel/webaudio";
+import { encodeRenderBody } from "../src/renderBody";
 
 const SAMPLE_RATE = 48000;
 const CHANNELS = 2;
@@ -135,26 +136,6 @@ async function renderOffline(pattern: Pattern, cycles: number): Promise<AudioBuf
   }
 }
 
-// Body layout expected by src/server.ts: u32 LE header length, JSON header,
-// zero padding to a multiple of 4 bytes, then interleaved float32 samples.
-function encodeRenderBody(code: string, cycles: number, buffer: AudioBuffer): Blob {
-  const header = new TextEncoder().encode(
-    JSON.stringify({ code, cycles, sampleRate: buffer.sampleRate, channels: buffer.numberOfChannels }),
-  );
-  const prefix = new Uint8Array(Math.ceil((4 + header.length) / 4) * 4);
-  new DataView(prefix.buffer).setUint32(0, header.length, true);
-  prefix.set(header, 4);
-
-  const frames = buffer.length;
-  const channels = buffer.numberOfChannels;
-  const samples = new Float32Array(frames * channels);
-  for (let c = 0; c < channels; c++) {
-    const data = buffer.getChannelData(c);
-    for (let i = 0; i < frames; i++) samples[i * channels + c] = data[i];
-  }
-  return new Blob([prefix, samples]);
-}
-
 async function render() {
   const code = mirror!.code;
   const cycles = Math.max(1, Math.round(Number(cyclesInput.value) || 1));
@@ -166,7 +147,10 @@ async function render() {
     setStatus("Sending to Live…");
     const response = await fetch(`/api/render?session=${session}`, {
       method: "POST",
-      body: encodeRenderBody(code, cycles, buffer),
+      body: encodeRenderBody(
+        { code, cycles, sampleRate: buffer.sampleRate, channels: buffer.numberOfChannels },
+        Array.from({ length: buffer.numberOfChannels }, (_, c) => buffer.getChannelData(c)),
+      ),
     });
     if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
     closeWithResult("rendered");
