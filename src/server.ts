@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import { URL } from "node:url";
+import { TextDecoder } from "node:util";
 import { decodeRenderBody, type RenderResult } from "./renderBody.js";
 
 export type { RenderResult } from "./renderBody.js";
@@ -65,7 +66,7 @@ async function handle(uiRoot: string, req: http.IncomingMessage, res: http.Serve
 
   if (url.pathname === "/api/render" && req.method === "POST") {
     if (!session) return void res.writeHead(404).end();
-    session.result = decodeRenderBody(await readBody(req));
+    session.result = decodeRenderBody(await readBody(req), new TextDecoder());
     return void res.writeHead(204).end();
   }
 

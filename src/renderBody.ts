@@ -1,6 +1,7 @@
 // The body the editor UI POSTs to /api/render: u32 LE header length, JSON
 // header, zero padding to a multiple of 4 bytes, then interleaved float32
-// samples. Shared by ui/main.ts and src/server.ts, so it only uses web APIs.
+// samples. Shared by ui/main.ts and src/server.ts. Live's Extension Host has
+// no TextEncoder/TextDecoder globals, so callers pass them in.
 
 export interface RenderHeader {
   code: string;
@@ -15,8 +16,12 @@ export interface RenderResult extends RenderHeader {
 }
 
 /** Encodes a render, interleaving the given per-channel sample arrays. */
-export function encodeRenderBody(header: RenderHeader, channelData: Float32Array[]): Uint8Array<ArrayBuffer> {
-  const json = new TextEncoder().encode(JSON.stringify(header));
+export function encodeRenderBody(
+  header: RenderHeader,
+  channelData: Float32Array[],
+  encoder: { encode(text: string): Uint8Array },
+): Uint8Array<ArrayBuffer> {
+  const json = encoder.encode(JSON.stringify(header));
   const samplesStart = Math.ceil((4 + json.length) / 4) * 4;
   const frames = channelData[0]?.length ?? 0;
   const channels = channelData.length;
@@ -32,12 +37,13 @@ export function encodeRenderBody(header: RenderHeader, channelData: Float32Array
   return body;
 }
 
-export function decodeRenderBody(body: Uint8Array): RenderResult {
+export function decodeRenderBody(body: Uint8Array, decoder: { decode(bytes: Uint8Array): string }): RenderResult {
   const view = new DataView(body.buffer, body.byteOffset, body.byteLength);
   const headerLength = view.getUint32(0, true);
-  const header: RenderHeader = JSON.parse(new TextDecoder().decode(body.subarray(4, 4 + headerLength)));
+  const header: RenderHeader = JSON.parse(decoder.decode(body.subarray(4, 4 + headerLength)));
   const samplesStart = Math.ceil((4 + headerLength) / 4) * 4;
   // Copy so the samples are 4-byte aligned regardless of the input's offset.
-  const bytes = body.slice(samplesStart);
+  // (Not body.slice: on a Node Buffer that returns a view into the pool.)
+  const bytes = new Uint8Array(body.subarray(samplesStart));
   return { ...header, samples: new Float32Array(bytes.buffer, 0, bytes.byteLength >> 2) };
 }

@@ -91,7 +91,9 @@ test("renders the edited code to audio", async ({ openEditor }) => {
   // 2 bars of 4/4 at 120 BPM is 4 seconds.
   expect(rendered.samples.length).toBe(4 * 48000 * 2);
   const peak = rendered.samples.reduce((max, sample) => Math.max(max, Math.abs(sample)), 0);
+  // Audible, and plausible for a square wave at half gain (not garbage).
   expect(peak).toBeGreaterThan(0.01);
+  expect(peak).toBeLessThan(1);
 });
 
 test("cancelling closes without a render", async ({ openEditor }) => {

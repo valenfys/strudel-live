@@ -150,6 +150,7 @@ async function render() {
       body: encodeRenderBody(
         { code, cycles, sampleRate: buffer.sampleRate, channels: buffer.numberOfChannels },
         Array.from({ length: buffer.numberOfChannels }, (_, c) => buffer.getChannelData(c)),
+        new TextEncoder(),
       ),
     });
     if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
