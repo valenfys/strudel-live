@@ -1,0 +1,9 @@
+{
+  "name": "@ableton-extensions/sdk",
+  "version": "0.0.0-stub",
+  "description": "Loosely typed stand-in for the proprietary SDK, so CI can typecheck, build and test without it.",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "AGPL-3.0-or-later"
+}
