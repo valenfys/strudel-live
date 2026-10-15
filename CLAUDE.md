@@ -13,8 +13,10 @@ audio clips. See README.md for usage and the scripts.
   - `protocol.ts`: the host/UI contract (`SessionInput`, API paths,
     `BEATS_PER_CYCLE`), shared with `ui/`. Change both sides through it.
   - `renderBody.ts`: the render upload format, shared with `ui/`.
+  - `starter.ts`: the code a new clip starts with.
 - `ui/` is the editor dialog (Vite, runs in Live's web view).
   - `main.ts`: DOM wiring and editor setup.
+  - `stems.ts`: splits a pattern's events by label, one stem each.
   - `render.ts`: renders patterns offline with an `OfflineAudioContext`; one
     cycle = one 4/4 bar.
   - `bridge.ts`: Live's dialog bridge (`closeWithResult`).
@@ -33,8 +35,13 @@ audio clips. See README.md for usage and the scripts.
   `resources.importIntoProject` (verified in Live 12.4). Build on the chunk
   (e.g. add fields to its JSON) rather than proposing sidecar files: the SDK has
   no per-clip or per-project storage.
-- An audio clip's file can't be swapped, so editing creates a new clip: in the
-  next empty Session slot, or in place in the Arrangement.
+- An audio clip's file can't be swapped, so editing replaces the clip with a
+  new one in the same place. This stops a playing Session clip; that's
+  accepted, since the tool is for producing rather than live performance.
+- Each labelled block (`kick: …`) renders to its own stem: a clip on a track
+  named after the label. A group's stems share a `group` id in their `strd`
+  chunk and sit in the same Session row or at the same Arrangement position.
+  `ui/stems.ts` wraps Strudel's `.p()` to tag events with their label.
 
 ## Gotchas
 
