@@ -179,9 +179,9 @@ async function place(
       track = found;
     }
     const clip = await placeAt(track, position, r);
-    // A stem is named after its label; a clip without one keeps its name.
+    // A stem is named after its variable or label; a clip without one keeps its name.
     const previous = current.find((p) => labelOf(p.data) === label && (p.data.scene ?? 0) === (r.data.scene ?? 0));
-    clip.name = r.data.stem ?? (previous?.clip.name || "Strudel");
+    clip.name = r.data.clip ?? r.data.stem ?? (previous?.clip.name || "Strudel");
     const clipColor = colors.get(`${r.data.scene ?? 0}/${label}`) ?? color;
     if (clipColor !== undefined) clip.color = clipColor;
   }
@@ -247,6 +247,7 @@ async function edit(
       cycles: result.cycles,
       bpm,
       stem: result.stems?.[i].label,
+      clip: result.stems?.[i].clip,
       group,
       scene: result.stems?.[i].scene,
       scenes: result.scenes,
@@ -267,7 +268,9 @@ async function writeIntoProject(
   const tempDirectory = context.environment.tempDirectory ?? path.join(os.tmpdir(), "strudel-live");
   fs.mkdirSync(tempDirectory, { recursive: true });
   const scene = data.scene === undefined ? undefined : data.scenes?.[data.scene];
-  const name = [scene, data.stem].map((part) => (part ? `-${part.replace(/[^\w-]+/g, "_")}` : "")).join("");
+  const name = [scene, data.clip ?? data.stem]
+    .map((part) => (part ? `-${part.replace(/[^\w-]+/g, "_")}` : ""))
+    .join("");
   const fileName = `strudel-${randomUUID().slice(0, 8)}${name}-${Math.round(data.bpm)}bpm.wav`;
   const tempPath = path.join(tempDirectory, fileName);
   fs.writeFileSync(tempPath, encodeStrudelWav(samples, result.sampleRate, result.channels, data));

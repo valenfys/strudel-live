@@ -25,6 +25,8 @@ export interface StrudelData {
   scene?: number;
   /** With `scenes()`: every scene's name, in order. */
   scenes?: string[];
+  /** The clip's name, when it differs from its stem's label (`hats: rollinghats`). */
+  clip?: string;
 }
 
 function chunk(id: string, payload: Buffer): Buffer {

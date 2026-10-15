@@ -68,7 +68,9 @@ scenes({
 ```
 
 - Each scene is a row, named after it, and each part is a track, named after
-  its key (so `{ kick }` puts `kick` on a `kick` track). A part left out of a
+  its key (so `{ kick }` puts `kick` on a `kick` track). Clips are named after
+  the variable they were written with, so `hat: rollinghat` puts a
+  `rollinghat` clip on the `hat` track. A part left out of a
   scene has no clip there, so launching that scene stops its track.
 - Rows match scenes by position: renaming a scene in code renames the Live
   scene, and reordering scenes moves their clips. Scenes added to the code are
