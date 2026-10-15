@@ -5,6 +5,8 @@ An Ableton Live extension built with `@ableton-extensions/sdk` that renders
 each clip's WAV file (in a custom `strd` RIFF chunk), so it is the clip's
 source of truth and travels with the Live set.
 
+![The Strudel editor dialog open over Live's Session View](docs/editor.png)
+
 ## Get Started
 
 Learn about building extensions: https://ableton.github.io/extensions-sdk/
