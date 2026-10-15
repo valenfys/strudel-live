@@ -10,11 +10,19 @@ audio clips. See README.md for usage and the scripts.
   - `server.ts`: local HTTP server that serves the editor dialog and receives
     renders.
   - `wav.ts`: 32-bit float WAV writer/reader with the `strd` chunk.
+  - `protocol.ts`: the host/UI contract (`SessionInput`, API paths,
+    `BEATS_PER_CYCLE`), shared with `ui/`. Change both sides through it.
   - `renderBody.ts`: the render upload format, shared with `ui/`.
-- `ui/` is the editor dialog (Vite, runs in Live's web view). It renders
-  patterns offline with an `OfflineAudioContext`; one cycle = one 4/4 bar.
+- `ui/` is the editor dialog (Vite, runs in Live's web view).
+  - `main.ts`: DOM wiring and editor setup.
+  - `render.ts`: renders patterns offline with an `OfflineAudioContext`; one
+    cycle = one 4/4 bar.
+  - `bridge.ts`: Live's dialog bridge (`closeWithResult`).
 - `test/unit/` (Vitest) and `test/e2e/` (Playwright against the real editor
   server, with Live's dialog bridge stubbed out).
+- `ci/ableton-sdk-stub/` stands in for the proprietary SDK in CI
+  (`.github/workflows/ci.yml`). If `src/` imports more from the SDK, extend
+  the stub or CI's typecheck fails.
 - `patches/` holds patch-package patches for Strudel packages; they are applied
   on `npm install`.
 
@@ -33,9 +41,10 @@ audio clips. See README.md for usage and the scripts.
 - **Live's Extension Host lacks web-style globals** that plain Node has (`URL`,
   `URLSearchParams`, `TextEncoder`/`TextDecoder`, `fetch`, `Blob`, …). In `src/`
   always import from `node:*` (`import { URL } from "node:url"`). Code shared
-  with `ui/` (like `renderBody.ts`) must take such objects as parameters. Tests
-  under plain Node won't catch this unless they stub the globals away, as
-  `test/unit/server.test.ts` does; extend its list if Live lacks more.
+  with `ui/` (like `renderBody.ts`) must take such objects as parameters. ESLint
+  flags these globals in `src/`, and `test/unit/server.test.ts` stubs them away;
+  if Live turns out to lack more, add them to both lists (`MISSING_IN_LIVE` in
+  `eslint.config.js` and the test).
 - **`npm start` fails with "Failed to connect to Live within 10s"** unless
   Developer Mode is on in Live's settings. Check that first.
 - The Ableton SDK and CLI are proprietary and installed from `vendor/`
@@ -43,16 +52,26 @@ audio clips. See README.md for usage and the scripts.
 
 ## Verifying changes
 
-- `npm run typecheck`, `npm test`, and `npm run test:e2e` (needs
+- `npm run check` runs typecheck, lint, format check and unit tests; run it
+  before calling a change done. `npm run format` fixes formatting (Prettier,
+  120 columns).
+- `npm run test:e2e` builds the UI and runs the browser tests (needs
   `npx playwright install chromium` once).
+- CI runs all of the above plus the production build on every PR, against the
+  SDK stub, so it can't check how `src/extension.ts` uses the real SDK: the
+  local typecheck does.
 - Anything involving Live itself (context menus, clip placement, import) can
   only be checked by hand with `npm start`; say so rather than claiming it works.
 
 ## Conventions
 
 - Branch names follow Conventional Branch: `feature/…`, `bugfix/…`,
-  `chore/…`, `hotfix/…`, `release/…`. Non-trivial work goes on a branch and
-  through a PR; small fixes may go to `main`.
+  `chore/…`, `hotfix/…`, `release/…`.
+- `main` is protected: every change goes through a PR, and CI's `check` job
+  must pass before merging.
+- PRs are merged with merge commits and their branches deleted. Before deleting
+  a branch, retarget any PRs stacked on it (`gh pr list --base <branch>`):
+  deleting a base branch closes them.
 - Commit and push as you go, in focused commits.
 - `.idea/` is tracked on purpose (WebStorm project files); don't gitignore it.
 - Use caret ranges in `package.json`, never exact pins; `package-lock.json`
