@@ -23,7 +23,9 @@ import {
 import { cyclesPerSecond, RENDER_PATH, SESSION_PATH, type SessionInput } from "../src/protocol";
 import { encodeRenderBody } from "../src/renderBody";
 import { closeWithResult } from "./bridge";
-import { renderOffline } from "./render";
+import { queryOnsets, renderOffline } from "./render";
+import { definedScenes, previewScene, resetScenes, scenes } from "./scenes";
+import { hasLabels, splitStems, tagStems, type Stem } from "./stems";
 
 // Overrides @strudel/codemirror's defaults (which suit strudel.cc's settings
 // panel). Only the keymap is user-selectable here.
@@ -43,12 +45,15 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const editorRoot = $<HTMLDivElement>("editor");
 const cyclesInput = $<HTMLInputElement>("cycles");
 const keymapSelect = $<HTMLSelectElement>("keymap");
+const scenePicker = $<HTMLLabelElement>("scene-picker");
+const sceneSelect = $<HTMLSelectElement>("scene");
 const previewButton = $<HTMLButtonElement>("preview");
 const renderButton = $<HTMLButtonElement>("render");
 const status = $<HTMLSpanElement>("status");
 const isMac = /Mac/.test(navigator.platform);
 
 let bpm = 120;
+let view: SessionInput["view"] = "session";
 let mirror: StrudelMirror | undefined;
 let lastEvalError: Error | undefined;
 let previewing = false;
@@ -91,13 +96,28 @@ async function render() {
   try {
     stopPreview();
     const pattern = await evaluatePattern(code, false);
-    const buffer = await renderOffline(pattern, cycles, bpm, setStatus);
+    const { stems, sceneNames } = stemsToRender(pattern, cycles);
+    const buffers: AudioBuffer[] = [];
+    for (const [i, stem] of stems.entries()) {
+      const name = stem.scene === undefined ? stem.label : `${sceneNames![stem.scene]} ${stem.label}`;
+      const prefix = stems.length > 1 || name ? `${name} (${i + 1}/${stems.length}): ` : "";
+      buffers.push(await renderOffline(stem.haps, cycles, bpm, (message) => setStatus(prefix + message)));
+    }
+    const { sampleRate, numberOfChannels: channels } = buffers[0];
+    const labelled = sceneNames || hasLabels();
     setStatus("Sending to Live…");
     const response = await fetch(`${RENDER_PATH}?session=${session}`, {
       method: "POST",
       body: encodeRenderBody(
-        { code, cycles, sampleRate: buffer.sampleRate, channels: buffer.numberOfChannels },
-        Array.from({ length: buffer.numberOfChannels }, (_, c) => buffer.getChannelData(c)),
+        {
+          code,
+          cycles,
+          sampleRate,
+          channels,
+          stems: labelled ? stems.map(({ label, scene }) => ({ label, scene })) : undefined,
+          scenes: sceneNames,
+        },
+        buffers.map((buffer) => Array.from({ length: channels }, (_, c) => buffer.getChannelData(c))),
         new TextEncoder(),
       ),
     });
@@ -108,6 +128,39 @@ async function render() {
     if (error !== lastEvalError) setStatus(String((error as Error).message ?? error), true);
     renderButton.disabled = previewButton.disabled = false;
   }
+}
+
+interface StemToRender extends Stem {
+  scene?: number;
+}
+
+/**
+ * What to render: a stem per part of each scene, a stem per label, or a single
+ * mix (one unnamed stem).
+ */
+function stemsToRender(pattern: Pattern, cycles: number): { stems: StemToRender[]; sceneNames?: string[] } {
+  const scenes = definedScenes();
+  if (!scenes) {
+    // Query once, so random choices are the same in every stem.
+    const haps = queryOnsets(pattern, cycles, bpm);
+    return { stems: splitStems(haps) ?? [{ label: "", haps }] };
+  }
+  if (hasLabels()) throw new Error("Use either labels or scenes(), not both");
+  if (view !== "session") throw new Error("scenes() only works in Session View");
+  const stems = scenes.flatMap((scene, i) =>
+    scene.parts.map(([label, part]) => ({ label, scene: i, haps: queryOnsets(part, cycles, bpm) })),
+  );
+  if (!stems.length) throw new Error("The scenes have no parts");
+  return { stems, sceneNames: scenes.map((scene) => scene.name) };
+}
+
+/** Lists the evaluated code's scenes in the picker, keeping the choice if it still exists. */
+function updateScenePicker() {
+  const names = definedScenes()?.map((scene) => scene.name) ?? [];
+  scenePicker.hidden = !names.length;
+  const chosen = sceneSelect.value;
+  sceneSelect.replaceChildren(...names.map((name) => new Option(name, name)));
+  sceneSelect.value = names.includes(chosen) ? chosen : (names[0] ?? "");
 }
 
 function stopPreview() {
@@ -137,6 +190,7 @@ async function main() {
   if (!response.ok) throw new Error("Session not found");
   const input: SessionInput = await response.json();
   bpm = input.bpm;
+  view = input.view;
   cyclesInput.value = String(input.cycles);
 
   initAudioOnFirstClick();
@@ -149,6 +203,7 @@ async function main() {
       import("@strudel/webaudio"),
       import("@strudel/draw"),
       import("@strudel/codemirror"),
+      { scenes },
     ),
     registerSynthSounds(),
     samples("github:tidalcycles/dirt-samples"),
@@ -165,11 +220,16 @@ async function main() {
     getTime: () => getAudioContext().currentTime,
     transpiler,
     onToggle: setPreviewing,
+    beforeEval: () => {
+      tagStems();
+      resetScenes();
+    },
     onEvalError: (error) => {
       lastEvalError = error;
       showEvalError(error);
     },
     afterEval: () => {
+      updateScenePicker();
       clearEvalError();
       if (previewing) setStatus("Previewing");
     },
@@ -189,6 +249,10 @@ async function main() {
 
 renderButton.addEventListener("click", render);
 previewButton.addEventListener("click", togglePreview);
+sceneSelect.addEventListener("change", () => {
+  previewScene(sceneSelect.value);
+  if (previewing) mirror?.evaluate();
+});
 keymapSelect.addEventListener("change", () => {
   updateEditorSettings({ keybindings: keymapSelect.value as Keybindings });
   mirror?.editor.focus();

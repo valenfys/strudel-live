@@ -21,12 +21,64 @@ Learn about building extensions: https://ableton.github.io/extensions-sdk/
 
 ## Usage
 
-- Right-click an empty clip slot on an audio track → **New Strudel clip…**
+- Right-click an empty clip slot on an audio track → **New Strudel clip…** The
+  editor starts with example code laid out as three scenes (see
+  [Scenes](#scenes)), which adds two scenes below the slot and a track per part.
 - Right-click a Strudel audio clip → **Edit Strudel…** to change its code and
-  re-render it. In Session View the new version goes into the next empty slot
-  below (a scene is added if needed), so the original keeps playing; launch the
-  new clip to switch on the next quantization boundary. Arrangement clips are
-  replaced in place.
+  re-render it. The clip is replaced in place, keeping its color (a playing
+  Session clip stops).
+
+### Stems
+
+Each labelled block in the code renders to its own clip, on a track named after
+the label, so the parts can be mixed and processed separately in Live:
+
+```js
+kick: s("bd*4");
+bass: note("<c2 ab1>(3,8)").s("sawtooth");
+```
+
+- Each stem's clip is named after its label, on every render. A clip from
+  code without labels keeps the name you give it.
+- The stems sit side by side: in the same Session row, or at the same
+  Arrangement position. Editing any of them re-renders all of them in place.
+- A new label goes on a free track with that name, or a new track. A label
+  removed from the code has its clip deleted (the track stays).
+- Muted blocks (`_kick:`) render silent clips. Anonymous `$:` blocks become
+  "Strudel 1", "Strudel 2"… in order, so name blocks that should keep their
+  track.
+- Code without labels renders a single clip, as before.
+
+### Scenes
+
+In Session View, one piece of code can fill several scenes. Define each part
+once, then list which parts play in each scene:
+
+```js
+let kick = s("bd*4");
+let hat = s("hh*8").gain(0.6);
+let rollinghat = s("hh*16").gain(0.4);
+let bass = note("<c2 ab1>(3,8)").s("sawtooth");
+
+scenes({
+  intro: { hat },
+  verse: { kick, hat, bass },
+  drop: { kick, hat: rollinghat, bass }, // rollinghat goes on the hat track
+});
+```
+
+- Each scene is a row, named after it, and each part is a track, named after
+  its key (so `{ kick }` puts `kick` on a `kick` track). A part left out of a
+  scene has no clip there, so launching that scene stops its track.
+- Rows match scenes by position: renaming a scene in code renames the Live
+  scene, and reordering scenes moves their clips. Scenes added to the code are
+  inserted below the group, moving the rest of the set down. A scene removed
+  from the code has its clips deleted, but the Live scene stays.
+- Every scene is rendered as its own loop of the editor's Bars length.
+- Pick which scene **Preview** plays with the Scene menu, shown once the code
+  has been evaluated.
+- For now, code uses either labels or `scenes()`, not both, and scenes only
+  work in Session View.
 
 ## How it works
 
@@ -35,7 +87,8 @@ Learn about building extensions: https://ableton.github.io/extensions-sdk/
 - `src/server.ts` serves the editor UI on `127.0.0.1` and receives rendered
   audio from it.
 - `ui/` is the editor dialog. It runs Strudel and renders patterns offline with
-  an `OfflineAudioContext` at the song tempo (one cycle = one 4/4 bar).
+  an `OfflineAudioContext` at the song tempo (one cycle = one 4/4 bar), one
+  render per labelled block.
 - `src/wav.ts` writes 32-bit float WAVs with the `strd` chunk and reads it back.
 
 ## Scripts

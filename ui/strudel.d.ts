@@ -3,17 +3,24 @@ declare module "@strudel/core" {
   interface Fraction {
     valueOf(): number;
   }
-  interface Hap {
+  export interface Hap {
     whole?: { begin: Fraction; end: Fraction };
     duration: number;
     value: any;
+    context: Record<string, unknown>;
     hasOnset(): boolean;
     ensureObjectValue(): void;
   }
-  export interface Pattern {
+  export class Pattern {
     queryArc(begin: number, end: number, controls?: Record<string, unknown>): Hap[];
+    /** Registers the pattern under a label; `kick: …` transpiles to `….p("kick")`. */
+    p(id: string | number): Pattern;
+    withContext(func: (context: Record<string, unknown>) => Record<string, unknown>): Pattern;
   }
   export function evalScope(...modules: unknown[]): Promise<unknown[]>;
+  export function isPattern(thing: unknown): boolean;
+  export function stack(...patterns: Pattern[]): Pattern;
+  export const silence: Pattern;
 }
 
 declare module "@strudel/mini" {
@@ -99,6 +106,7 @@ declare module "@strudel/codemirror" {
       transpiler: unknown;
       onToggle?: (started: boolean) => void;
       onEvalError?: (error: Error) => void;
+      beforeEval?: () => void | Promise<void>;
       afterEval?: (options: { code: string; pattern: Pattern }) => void;
     });
     editor: EditorView;
