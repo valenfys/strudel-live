@@ -1,0 +1,13 @@
+diff --git a/node_modules/superdough/dist/index.mjs b/node_modules/superdough/dist/index.mjs
+index 0000000..0000000 100644
+--- a/node_modules/superdough/dist/index.mjs
++++ b/node_modules/superdough/dist/index.mjs
+@@ -96,7 +96,7 @@ const st = /* @__PURE__ */ new Map(), ut = Symbol("nodePoolKey"), hn = (e) => !!
+   const n = st.get(e) ?? [];
+   let o, a = !1;
+   for (; n.length; )
+-    if (o = n.pop()?.deref(), o != null && Gn(o)) {
++    if (o = n.pop()?.deref(), o != null && o.context === z() && Gn(o)) {
+       a = !0;
+       break;
+     }
