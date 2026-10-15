@@ -19,11 +19,11 @@ import {
   superdough,
   webaudioOutput,
 } from "@strudel/webaudio";
+import { cyclesPerSecond, RENDER_PATH, SESSION_PATH, type SessionInput } from "../src/protocol";
 import { encodeRenderBody } from "../src/renderBody";
 
 const SAMPLE_RATE = 48000;
 const CHANNELS = 2;
-const BEATS_PER_CYCLE = 4;
 
 // Overrides @strudel/codemirror's defaults (which suit strudel.cc's settings
 // panel). Only the keymap is user-selectable here.
@@ -100,7 +100,7 @@ async function evaluatePattern(code: string, play: boolean): Promise<Pattern> {
 // Based on renderPatternAudio from @strudel/webaudio, which downloads the
 // result instead of returning it.
 async function renderOffline(pattern: Pattern, cycles: number): Promise<AudioBuffer> {
-  const cps = bpm / 60 / BEATS_PER_CYCLE;
+  const cps = cyclesPerSecond(bpm);
   await getAudioContext().close();
   const context = new OfflineAudioContext(
     CHANNELS,
@@ -145,7 +145,7 @@ async function render() {
     const pattern = await evaluatePattern(code, false);
     const buffer = await renderOffline(pattern, cycles);
     setStatus("Sending to Live…");
-    const response = await fetch(`/api/render?session=${session}`, {
+    const response = await fetch(`${RENDER_PATH}?session=${session}`, {
       method: "POST",
       body: encodeRenderBody(
         { code, cycles, sampleRate: buffer.sampleRate, channels: buffer.numberOfChannels },
@@ -185,9 +185,9 @@ function setPreviewing(started: boolean) {
 }
 
 async function main() {
-  const response = await fetch(`/api/session?session=${session}`);
+  const response = await fetch(`${SESSION_PATH}?session=${session}`);
   if (!response.ok) throw new Error("Session not found");
-  const input: { code: string; cycles: number; bpm: number } = await response.json();
+  const input: SessionInput = await response.json();
   bpm = input.bpm;
   cyclesInput.value = String(input.cycles);
 
@@ -238,7 +238,7 @@ async function main() {
   mirror.editor.focus();
 
   await prebaked;
-  mirror.repl.setCps(bpm / 60 / BEATS_PER_CYCLE);
+  mirror.repl.setCps(cyclesPerSecond(bpm));
   renderButton.disabled = previewButton.disabled = false;
   setStatus(`Ready · ${bpm} BPM`);
 }
