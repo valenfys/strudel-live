@@ -6,7 +6,7 @@ import { encodeRenderBody } from "../../src/renderBody";
 import { runEditorSession } from "../../src/server";
 
 // Live's Extension Host runs src/ without these web-style globals, although
-// plain Node (and so the e2e tests) has them.
+// plain Node (and so the e2e tests) has them. Keep in sync with eslint.config.js.
 const MISSING_IN_LIVE = ["URL", "URLSearchParams", "TextEncoder", "TextDecoder", "fetch", "Blob"];
 
 function request(url: string, method = "GET", body?: Uint8Array): Promise<{ status: number; body: string }> {

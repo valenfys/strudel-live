@@ -14,7 +14,10 @@
     "package": "npm run build && ableton-extensions-cli package -i dist/ui",
     "postinstall": "patch-package",
     "test": "vitest run",
-    "test:e2e": "vite build --mode development && playwright test"
+    "test:e2e": "vite build --mode development && playwright test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@ableton-extensions/sdk": "file:./vendor/ableton-extensions-sdk-1.0.0-beta.1.tgz",
@@ -33,12 +36,18 @@
   },
   "devDependencies": {
     "@ableton-extensions/cli": "file:./vendor/ableton-extensions-cli-1.0.0-beta.1.tgz",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.1",
     "@types/node": "^24.1.0",
     "esbuild": "0.28.1",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.13.0",
     "patch-package": "^8.0.1",
+    "prettier": "^3.9.10",
     "tsx": "^4.19.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.2",
     "vite": "^6.0.0",
     "vitest": "^5.0.5"
   },
