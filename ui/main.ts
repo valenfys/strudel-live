@@ -7,23 +7,11 @@ import { evalScope, type Pattern } from "@strudel/core";
 import { getDrawContext } from "@strudel/draw";
 import { miniAllStrings } from "@strudel/mini";
 import { transpiler } from "@strudel/transpiler";
-import {
-  getAudioContext,
-  initAudio,
-  initAudioOnFirstClick,
-  registerSynthSounds,
-  resetGlobalEffects,
-  samples,
-  setAudioContext,
-  setSuperdoughAudioController,
-  superdough,
-  webaudioOutput,
-} from "@strudel/webaudio";
+import { getAudioContext, initAudioOnFirstClick, registerSynthSounds, samples, webaudioOutput } from "@strudel/webaudio";
 import { cyclesPerSecond, RENDER_PATH, SESSION_PATH, type SessionInput } from "../src/protocol";
 import { encodeRenderBody } from "../src/renderBody";
-
-const SAMPLE_RATE = 48000;
-const CHANNELS = 2;
+import { closeWithResult } from "./bridge";
+import { renderOffline } from "./render";
 
 // Overrides @strudel/codemirror's defaults (which suit strudel.cc's settings
 // panel). Only the keymap is user-selectable here.
@@ -59,19 +47,6 @@ function setStatus(text: string, isError = false) {
   status.classList.toggle("error", isError);
 }
 
-// Send a result back to the extension host and close this dialog.
-function closeWithResult(result: string) {
-  const message = { method: "close_and_send", params: [result] };
-  const w = window as any;
-  if (w.webkit?.messageHandlers?.live) {
-    w.webkit.messageHandlers.live.postMessage(message);
-  } else if (w.chrome?.webview) {
-    w.chrome.webview.postMessage(message);
-  } else {
-    console.log("closeWithResult:", result);
-  }
-}
-
 // Underline the failing code for errors that carry a position (syntax errors
 // from the transpiler's parser); other errors only show in the status bar.
 function showEvalError(error: Error) {
@@ -97,45 +72,6 @@ async function evaluatePattern(code: string, play: boolean): Promise<Pattern> {
   return pattern;
 }
 
-// Based on renderPatternAudio from @strudel/webaudio, which downloads the
-// result instead of returning it.
-async function renderOffline(pattern: Pattern, cycles: number): Promise<AudioBuffer> {
-  const cps = cyclesPerSecond(bpm);
-  await getAudioContext().close();
-  const context = new OfflineAudioContext(
-    CHANNELS,
-    Math.round((cycles / cps) * SAMPLE_RATE),
-    SAMPLE_RATE,
-  );
-  setAudioContext(context);
-  // Let superdough lazily create a controller for the offline context.
-  setSuperdoughAudioController(null);
-  try {
-    await initAudio({ multiChannelOrbits: false });
-    // Ascending onset order matters for controls like `cut`.
-    const haps = pattern
-      .queryArc(0, cycles, { _cps: cps })
-      .filter((hap) => hap.hasOnset())
-      .sort((a, b) => a.whole!.begin.valueOf() - b.whole!.begin.valueOf());
-    for (const [i, hap] of haps.entries()) {
-      setStatus(`Scheduling ${i + 1}/${haps.length}…`);
-      const onset = hap.whole!.begin.valueOf() / cps;
-      hap.ensureObjectValue();
-      try {
-        await superdough(hap.value, onset, hap.duration / cps, cps, onset);
-      } catch (error) {
-        console.warn("superdough failed for hap", hap, error);
-      }
-    }
-    setStatus("Rendering…");
-    return await context.startRendering();
-  } finally {
-    setAudioContext(null);
-    setSuperdoughAudioController(null);
-    resetGlobalEffects();
-  }
-}
-
 async function render() {
   const code = mirror!.code;
   const cycles = Math.max(1, Math.round(Number(cyclesInput.value) || 1));
@@ -143,7 +79,7 @@ async function render() {
   try {
     stopPreview();
     const pattern = await evaluatePattern(code, false);
-    const buffer = await renderOffline(pattern, cycles);
+    const buffer = await renderOffline(pattern, cycles, bpm, setStatus);
     setStatus("Sending to Live…");
     const response = await fetch(`${RENDER_PATH}?session=${session}`, {
       method: "POST",
