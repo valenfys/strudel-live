@@ -67,8 +67,9 @@ audio clips. See README.md for usage and the scripts.
 
 - Branch names follow Conventional Branch: `feature/…`, `bugfix/…`,
   `chore/…`, `hotfix/…`, `release/…`.
-- `main` is protected: every change goes through a PR, and CI's `check` job
-  must pass before merging.
+- Non-trivial work goes on a branch and through a PR, merged once CI passes;
+  small fixes may be committed straight to `main`. Force-pushing to (or
+  deleting) `main` is blocked.
 - PRs are merged with merge commits and their branches deleted. Before deleting
   a branch, retarget any PRs stacked on it (`gh pr list --base <branch>`):
   deleting a base branch closes them.
