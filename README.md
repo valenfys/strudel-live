@@ -21,7 +21,9 @@ Learn about building extensions: https://ableton.github.io/extensions-sdk/
 
 ## Usage
 
-- Right-click an empty clip slot on an audio track → **New Strudel clip…**
+- Right-click an empty clip slot on an audio track → **New Strudel clip…** The
+  editor starts with example code laid out as three scenes (see
+  [Scenes](#scenes)), which adds two scenes below the slot and a track per part.
 - Right-click a Strudel audio clip → **Edit Strudel…** to change its code and
   re-render it. The clip is replaced in place, keeping its color (a playing
   Session clip stops).

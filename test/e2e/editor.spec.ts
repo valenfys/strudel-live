@@ -130,19 +130,34 @@ test("renders each label to its own stem", async ({ openEditor }) => {
   expect(bass).toBeGreaterThan(0.01);
 });
 
-test("renders the starter code to a stem per part", async ({ openEditor }) => {
+test("renders the starter code to a stem per part of each scene", async ({ openEditor }) => {
   const { page, closed, result } = await openEditor({ code: STARTER_CODE, cycles: STARTER_CYCLES });
 
   await page.locator("#render").click();
   expect(await closed).toBe("rendered");
 
   const rendered = (await result)!;
-  expect(rendered.stems?.map((stem) => stem.label)).toEqual(["kick", "snare", "hats", "bass", "chords"]);
+  expect(rendered.scenes).toEqual(["intro", "groove", "drop"]);
+  const stems = rendered.stems!.map(({ label, scene }) => `${rendered.scenes![scene!]}/${label}`);
+  expect(stems).toEqual([
+    "intro/hats",
+    "intro/chords",
+    "groove/kick",
+    "groove/snare",
+    "groove/hats",
+    "groove/bass",
+    "groove/chords",
+    "drop/kick",
+    "drop/snare",
+    "drop/hats",
+    "drop/bass",
+  ]);
   // The tests don't load sample audio, so only the synth parts are audible.
-  const peaks = rendered.samples.map(peak);
-  expect(peaks[3]).toBeGreaterThan(0.01);
-  expect(peaks[4]).toBeGreaterThan(0.01);
-  for (const p of peaks) expect(p).toBeLessThan(1);
+  const peaks = new Map(stems.map((stem, i) => [stem, peak(rendered.samples[i])]));
+  for (const stem of ["intro/chords", "groove/bass", "groove/chords", "drop/bass"]) {
+    expect(peaks.get(stem)).toBeGreaterThan(0.01);
+  }
+  for (const p of peaks.values()) expect(p).toBeLessThan(1);
 });
 
 const SCENES_CODE = [
