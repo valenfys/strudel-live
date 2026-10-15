@@ -14,7 +14,8 @@
     "package": "npm run build && ableton-extensions-cli package -i dist/ui",
     "postinstall": "patch-package",
     "test": "vitest run",
-    "test:e2e": "vite build --mode development && playwright test"
+    "test:e2e": "vite build --mode development && playwright test",
+    "check": "npm run typecheck && npm run lint --if-present && npm run format:check --if-present && npm test"
   },
   "dependencies": {
     "@ableton-extensions/sdk": "file:./vendor/ableton-extensions-sdk-1.0.0-beta.1.tgz",

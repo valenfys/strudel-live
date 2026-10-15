@@ -44,6 +44,7 @@ npm run build              # production build of the extension and UI
 npm run build:dev          # dev build (sourcemaps, not minified)
 npm run package            # build for production + create a .ablx archive
 npm test                   # unit tests (Vitest)
+npm run check              # typecheck + lint + format check + unit tests
 npm run test:e2e           # build the UI + run the editor's browser tests (Playwright)
 ```
 
