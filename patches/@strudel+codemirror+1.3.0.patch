@@ -1,0 +1,27 @@
+diff --git a/node_modules/@strudel/codemirror/dist/index.mjs b/node_modules/@strudel/codemirror/dist/index.mjs
+index 0000000..0000000 100644
+--- a/node_modules/@strudel/codemirror/dist/index.mjs
++++ b/node_modules/@strudel/codemirror/dist/index.mjs
+@@ -1,3 +1,4 @@
++import { soundMap as superdoughSoundMap } from "superdough";
+ import { autocompletion as Xe, closeBracketsKeymap as Ye, closeBrackets as Ze } from "@codemirror/autocomplete";
+ import { history as ge, defaultKeymap as re, historyKeymap as be, indentWithTab as Qe, toggleLineComment as Je } from "@codemirror/commands";
+ import { toggleBlockComment as Ro, toggleBlockCommentByLine as Vo, toggleComment as Wo, toggleLineComment as zo } from "@codemirror/commands";
+@@ -73,7 +74,7 @@ const Bn = (t) => {
+   return n && !n.startsWith("_") && !["package"].includes(t.kind);
+ }, En = (t) => ["superdirtOnly", "noAutocomplete"].some((n) => t.tags?.find((a) => a.originalTitle === n));
+ function In() {
+-  const t = {}, n = /* @__PURE__ */ new Set();
++  const t = superdoughSoundMap.get(), n = /* @__PURE__ */ new Set();
+   for (const a of Object.keys(t)) {
+     const [o, s] = a.split("_");
+     s && o && n.add(o);
+@@ -184,7 +185,7 @@ function et(t) {
+   const o = a.text, s = Math.max(o.lastIndexOf('"'), o.lastIndexOf("'"));
+   if (s === -1) return null;
+   const r = o.slice(s + 1), i = r.match(Jn), m = i ? i[1] : r;
+-  let d = Object.keys({}).sort().filter((f) => f.includes(m)).map((f) => ({ label: f, type: "sound" }));
++  let d = Object.keys(superdoughSoundMap.get()).sort().filter((f) => f.includes(m)).map((f) => ({ label: f, type: "sound" }));
+   return {
+     from: a.to - m.length,
+     options: d

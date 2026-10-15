@@ -107,7 +107,7 @@ async function edit(
 ): Promise<Rendered | undefined> {
   const bpm = context.application.song.tempo;
   const result = await runEditorSession({ ...initial, bpm }, (url) =>
-    context.ui.showModalDialog(url, 720, 480),
+    context.ui.showModalDialog(url, 960, 640),
   );
   if (!result) return undefined;
   const data: StrudelData = { version: 1, code: result.code, cycles: result.cycles, bpm };

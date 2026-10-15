@@ -1,30 +1,54 @@
+import { highlightSelectionMatches, search, searchKeymap } from "@codemirror/search";
+import { setDiagnostics } from "@codemirror/lint";
+import { StateEffect } from "@codemirror/state";
+import { keymap } from "@codemirror/view";
+import { codemirrorSettings, defaultSettings, StrudelMirror, type EditorSettings, type Keybindings } from "@strudel/codemirror";
+import { evalScope, type Pattern } from "@strudel/core";
+import { getDrawContext } from "@strudel/draw";
+import { miniAllStrings } from "@strudel/mini";
+import { transpiler } from "@strudel/transpiler";
 import {
-  evaluate,
   getAudioContext,
-  hush,
   initAudio,
-  initStrudel,
+  initAudioOnFirstClick,
+  registerSynthSounds,
   resetGlobalEffects,
   samples,
   setAudioContext,
   setSuperdoughAudioController,
   superdough,
-  type Pattern,
-} from "@strudel/web";
+  webaudioOutput,
+} from "@strudel/webaudio";
 
 const SAMPLE_RATE = 48000;
 const CHANNELS = 2;
 const BEATS_PER_CYCLE = 4;
 
+// Overrides @strudel/codemirror's defaults (which suit strudel.cc's settings
+// panel). Only the keymap is user-selectable here.
+const EDITOR_SETTINGS = {
+  isAutoCompletionEnabled: true,
+  isTooltipEnabled: true,
+  isBracketMatchingEnabled: true,
+  isActiveLineHighlighted: true,
+  isMultiCursorEnabled: true,
+  isTabIndentationEnabled: true,
+  fontFamily: "ui-monospace, Menlo, monospace",
+  fontSize: 13,
+};
+
 const session = new URLSearchParams(location.search).get("session") ?? "";
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const codeInput = $<HTMLTextAreaElement>("code");
+const editorRoot = $<HTMLDivElement>("editor");
 const cyclesInput = $<HTMLInputElement>("cycles");
+const keymapSelect = $<HTMLSelectElement>("keymap");
 const previewButton = $<HTMLButtonElement>("preview");
 const renderButton = $<HTMLButtonElement>("render");
 const status = $<HTMLSpanElement>("status");
+const isMac = /Mac/.test(navigator.platform);
 
 let bpm = 120;
+let mirror: StrudelMirror | undefined;
 let lastEvalError: Error | undefined;
 let previewing = false;
 
@@ -47,9 +71,27 @@ function closeWithResult(result: string) {
   }
 }
 
+// Underline the failing code for errors that carry a position (syntax errors
+// from the transpiler's parser); other errors only show in the status bar.
+function showEvalError(error: Error) {
+  setStatus(error.message, true);
+  if (!mirror) return;
+  const { state } = mirror.editor;
+  const pos = (error as { pos?: unknown }).pos;
+  const diagnostics =
+    typeof pos === "number" && pos <= state.doc.length
+      ? [{ from: pos, to: Math.min(pos + 1, state.doc.length), severity: "error" as const, message: error.message }]
+      : [];
+  mirror.editor.dispatch(setDiagnostics(state, diagnostics));
+}
+
+function clearEvalError() {
+  if (mirror) mirror.editor.dispatch(setDiagnostics(mirror.editor.state, []));
+}
+
 async function evaluatePattern(code: string, play: boolean): Promise<Pattern> {
   lastEvalError = undefined;
-  const pattern = await evaluate(code, play);
+  const pattern = await mirror!.repl.evaluate(code, play);
   if (!pattern) throw lastEvalError ?? new Error("Code did not produce a pattern");
   return pattern;
 }
@@ -114,7 +156,7 @@ function encodeRenderBody(code: string, cycles: number, buffer: AudioBuffer): Bl
 }
 
 async function render() {
-  const code = codeInput.value;
+  const code = mirror!.code;
   const cycles = Math.max(1, Math.round(Number(cyclesInput.value) || 1));
   renderButton.disabled = previewButton.disabled = true;
   try {
@@ -130,28 +172,31 @@ async function render() {
     closeWithResult("rendered");
   } catch (error) {
     console.error(error);
-    setStatus(String((error as Error).message ?? error), true);
+    if (error !== lastEvalError) setStatus(String((error as Error).message ?? error), true);
     renderButton.disabled = previewButton.disabled = false;
   }
 }
 
 function stopPreview() {
-  if (!previewing) return;
-  hush();
-  previewing = false;
-  previewButton.textContent = "Preview";
+  if (previewing) mirror?.stop();
 }
 
-async function togglePreview() {
-  if (previewing) return stopPreview();
-  try {
-    await evaluatePattern(codeInput.value, true);
-    previewing = true;
-    previewButton.textContent = "Stop";
-    setStatus("Previewing");
-  } catch (error) {
-    setStatus(String((error as Error).message ?? error), true);
-  }
+function togglePreview() {
+  if (previewing) stopPreview();
+  else mirror?.evaluate();
+}
+
+// StrudelMirror.updateSettings reconfigures every extension from the object it
+// is given, so it always needs a complete settings object.
+function updateEditorSettings(changes: Partial<EditorSettings>) {
+  mirror?.updateSettings({ ...defaultSettings, ...codemirrorSettings.get(), ...EDITOR_SETTINGS, ...changes });
+}
+
+function setPreviewing(started: boolean) {
+  previewing = started;
+  previewButton.textContent = started ? "Stop" : "Preview";
+  if (started) setStatus("Previewing");
+  else if (!status.classList.contains("error")) setStatus(`Ready · ${bpm} BPM`);
 }
 
 async function main() {
@@ -159,35 +204,82 @@ async function main() {
   if (!response.ok) throw new Error("Session not found");
   const input: { code: string; cycles: number; bpm: number } = await response.json();
   bpm = input.bpm;
-  codeInput.value = input.code;
   cyclesInput.value = String(input.cycles);
 
-  const repl = await initStrudel({
-    prebake: () => samples("github:tidalcycles/dirt-samples"),
-    onEvalError: (error: Error) => {
+  initAudioOnFirstClick();
+  miniAllStrings();
+  const prebaked = Promise.all([
+    evalScope(
+      import("@strudel/core"),
+      import("@strudel/mini"),
+      import("@strudel/tonal"),
+      import("@strudel/webaudio"),
+      import("@strudel/draw"),
+      import("@strudel/codemirror"),
+    ),
+    registerSynthSounds(),
+    samples("github:tidalcycles/dirt-samples"),
+  ]);
+
+  mirror = new StrudelMirror({
+    root: editorRoot,
+    initialCode: input.code,
+    prebake: () => prebaked,
+    bgFill: false,
+    drawContext: getDrawContext(),
+    defaultOutput: webaudioOutput,
+    // Not bound to one context: rendering swaps in an OfflineAudioContext.
+    getTime: () => getAudioContext().currentTime,
+    transpiler,
+    onToggle: setPreviewing,
+    onEvalError: (error) => {
       lastEvalError = error;
+      showEvalError(error);
+    },
+    afterEval: () => {
+      clearEvalError();
+      if (previewing) setStatus("Previewing");
     },
   });
-  repl.setCps(bpm / 60 / BEATS_PER_CYCLE);
+  updateEditorSettings({});
+  keymapSelect.value = codemirrorSettings.get().keybindings;
+  mirror.editor.dispatch({
+    effects: StateEffect.appendConfig.of([
+      search({ top: true }),
+      highlightSelectionMatches(),
+      keymap.of(searchKeymap),
+    ]),
+  });
+  mirror.editor.focus();
 
-  codeInput.disabled = false;
+  await prebaked;
+  mirror.repl.setCps(bpm / 60 / BEATS_PER_CYCLE);
   renderButton.disabled = previewButton.disabled = false;
   setStatus(`Ready · ${bpm} BPM`);
-  codeInput.focus();
 }
 
 renderButton.addEventListener("click", render);
 previewButton.addEventListener("click", togglePreview);
+keymapSelect.addEventListener("change", () => {
+  updateEditorSettings({ keybindings: keymapSelect.value as Keybindings });
+  mirror?.editor.focus();
+});
 $("cancel").addEventListener("click", () => {
   stopPreview();
   closeWithResult("cancel");
 });
-codeInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-    event.preventDefault();
-    if (!renderButton.disabled) render();
-  }
-});
+// Capture phase, so this wins over the editor's own Ctrl-Enter (preview).
+window.addEventListener(
+  "keydown",
+  (event) => {
+    if (event.key === "Enter" && (isMac ? event.metaKey : event.ctrlKey) && !event.altKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!renderButton.disabled) render();
+    }
+  },
+  true,
+);
 
 main().catch((error) => {
   console.error(error);

@@ -1,5 +1,5 @@
-// @strudel/web ships no type declarations; these cover what ui/main.ts uses.
-declare module "@strudel/web" {
+// The Strudel packages ship no type declarations; these cover what ui/main.ts uses.
+declare module "@strudel/core" {
   interface Fraction {
     valueOf(): number;
   }
@@ -13,19 +13,32 @@ declare module "@strudel/web" {
   export interface Pattern {
     queryArc(begin: number, end: number, controls?: Record<string, unknown>): Hap[];
   }
-  interface Repl {
-    setCps(cps: number): void;
-  }
+  export function evalScope(...modules: unknown[]): Promise<unknown[]>;
+}
 
-  export function initStrudel(options?: {
-    prebake?: () => Promise<unknown>;
-    onEvalError?: (error: Error) => void;
-  }): Promise<Repl>;
-  export function evaluate(code: string, autoplay?: boolean): Promise<Pattern | undefined>;
-  export function hush(): void;
+declare module "@strudel/mini" {
+  export function miniAllStrings(): void;
+}
+
+declare module "@strudel/tonal";
+
+declare module "@strudel/transpiler" {
+  export const transpiler: unknown;
+}
+
+declare module "@strudel/draw" {
+  export function getDrawContext(): CanvasRenderingContext2D;
+}
+
+declare module "@strudel/webaudio" {
+  import type { Hap } from "@strudel/core";
+
+  export function webaudioOutput(hap: Hap, deadline: number, duration: number, cps: number, t: number): Promise<void>;
+  export function registerSynthSounds(): void;
   export function samples(source: string): Promise<void>;
+  export function initAudioOnFirstClick(): Promise<void>;
 
-  export function getAudioContext(): BaseAudioContext & { close(): Promise<void> };
+  export function getAudioContext(): AudioContext;
   export function setAudioContext(context: BaseAudioContext | null): void;
   export function setSuperdoughAudioController(controller: null): void;
   export function initAudio(options?: { maxPolyphony?: number; multiChannelOrbits?: boolean }): Promise<void>;
@@ -37,4 +50,63 @@ declare module "@strudel/web" {
     cps: number,
     cycle: number,
   ): Promise<void>;
+}
+
+declare module "@strudel/codemirror" {
+  import type { Pattern } from "@strudel/core";
+  import type { EditorView } from "@codemirror/view";
+
+  export type Keybindings = "codemirror" | "vim" | "emacs" | "vscode";
+  export interface EditorSettings {
+    keybindings: Keybindings;
+    isBracketMatchingEnabled: boolean;
+    isBracketClosingEnabled: boolean;
+    isLineNumbersDisplayed: boolean;
+    isActiveLineHighlighted: boolean;
+    isAutoCompletionEnabled: boolean;
+    isPatternHighlightingEnabled: boolean;
+    isFlashEnabled: boolean;
+    isTooltipEnabled: boolean;
+    isLineWrappingEnabled: boolean;
+    isTabIndentationEnabled: boolean;
+    isMultiCursorEnabled: boolean;
+    theme: string;
+    fontFamily: string;
+    fontSize: number;
+  }
+  export const defaultSettings: EditorSettings;
+  export const codemirrorSettings: {
+    get(): EditorSettings;
+    set(settings: EditorSettings): void;
+  };
+
+  interface Repl {
+    evaluate(code: string, autostart?: boolean): Promise<Pattern | undefined>;
+    setCps(cps: number): void;
+    stop(): void;
+    scheduler: { started: boolean };
+  }
+
+  export class StrudelMirror {
+    constructor(options: {
+      root: HTMLElement;
+      initialCode?: string;
+      prebake: () => Promise<unknown>;
+      bgFill?: boolean;
+      drawContext?: CanvasRenderingContext2D;
+      defaultOutput: unknown;
+      getTime: () => number;
+      transpiler: unknown;
+      onToggle?: (started: boolean) => void;
+      onEvalError?: (error: Error) => void;
+      afterEval?: (options: { code: string; pattern: Pattern }) => void;
+    });
+    editor: EditorView;
+    repl: Repl;
+    code: string;
+    evaluate(autostart?: boolean): Promise<void>;
+    stop(): Promise<void>;
+    updateSettings(settings: Partial<EditorSettings>): void;
+    changeSetting<K extends keyof EditorSettings>(key: K, value: EditorSettings[K]): void;
+  }
 }

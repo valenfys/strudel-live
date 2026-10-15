@@ -16,15 +16,53 @@
         background: #1e1e1e;
         color: #ddd;
       }
-      textarea {
+      /* Pattern visuals (.pianoroll() etc.) draw behind the editor. */
+      #test-canvas {
+        z-index: -1;
+      }
+      #editor {
         flex: 1;
+        min-height: 0;
         margin: 12px 12px 0;
-        padding: 8px;
-        resize: none;
-        background: #111;
-        color: #eee;
         border: 1px solid #333;
-        font: 13px ui-monospace, Menlo, monospace;
+        background: #11111180;
+      }
+      #editor .cm-editor {
+        height: 100%;
+      }
+      #editor .cm-editor.cm-focused {
+        outline: none;
+      }
+      .autocomplete-info-tooltip {
+        max-width: 420px;
+        max-height: 320px;
+        overflow: auto;
+        padding: 4px 8px;
+        font: 12px -apple-system, system-ui, sans-serif;
+      }
+      .autocomplete-info-function-name {
+        margin: 4px 0;
+        font: bold 13px ui-monospace, Menlo, monospace;
+      }
+      .autocomplete-info-section-title {
+        margin: 8px 0 4px;
+        color: #999;
+      }
+      .autocomplete-info-params-list {
+        margin: 0;
+        padding-left: 16px;
+      }
+      .autocomplete-info-param-name {
+        font-family: ui-monospace, Menlo, monospace;
+      }
+      .autocomplete-info-param-type {
+        color: #999;
+      }
+      .autocomplete-info-example-code {
+        margin: 4px 0;
+        padding: 4px 6px;
+        background: #0004;
+        white-space: pre-wrap;
       }
       footer {
         display: flex;
@@ -45,14 +83,27 @@
       input {
         width: 48px;
       }
+      kbd {
+        font: inherit;
+        color: #999;
+      }
     </style>
   </head>
   <body>
-    <textarea id="code" spellcheck="false" disabled></textarea>
+    <div id="editor"></div>
     <footer>
       <span id="status">Loading Strudel…</span>
+      <label
+        >Keys
+        <select id="keymap">
+          <option value="codemirror">Default</option>
+          <option value="vscode">VS Code</option>
+          <option value="vim">Vim</option>
+          <option value="emacs">Emacs</option>
+        </select>
+      </label>
       <label>Bars <input id="cycles" type="number" min="1" max="64" /></label>
-      <button id="preview" disabled>Preview</button>
+      <button id="preview" disabled title="Ctrl+Enter or Alt+Enter to update, Ctrl+. to stop">Preview</button>
       <button id="cancel">Cancel</button>
       <button id="render" disabled>Render ⌘↵</button>
     </footer>
