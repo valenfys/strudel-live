@@ -37,6 +37,11 @@ export function stemLabel(id: string, nextAnonymous: () => number): string {
   return label.includes("$") ? `Strudel ${nextAnonymous()}` : label;
 }
 
+/** Whether the last evaluation had labelled blocks. */
+export function hasLabels(): boolean {
+  return labels.length > 0;
+}
+
 export interface Stem {
   label: string;
   haps: Hap[];

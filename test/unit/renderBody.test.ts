@@ -40,11 +40,13 @@ describe("render body", () => {
   });
 
   it("keeps stems apart, in order", () => {
-    const stems = ["kick", "bass", "chords"];
+    const stems = [{ label: "kick" }, { label: "bass", scene: 0 }, { label: "bass", scene: 1 }];
     const audio = stems.map((_, s) => [new Float32Array([s, s + 0.5]), new Float32Array([-s, -s - 0.5])]);
-    const result = decodeRenderBody(encode({ ...header, stems }, audio, new TextEncoder()));
+    const scenes = ["verse", "chorus"];
+    const result = decodeRenderBody(encode({ ...header, stems, scenes }, audio, new TextEncoder()));
 
     expect(result.stems).toEqual(stems);
+    expect(result.scenes).toEqual(scenes);
     expect(result.samples.map((samples) => Array.from(samples))).toEqual([
       [0, -0, 0.5, -0.5],
       [1, -1, 1.5, -1.5],

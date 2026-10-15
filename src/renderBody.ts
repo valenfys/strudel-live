@@ -10,10 +10,18 @@ export interface RenderHeader {
   sampleRate: number;
   channels: number;
   /**
-   * The labels of the code's parts (`kick: …`), one stem each, in order. Absent
-   * when the code has no labels and renders as a single mix.
+   * One per stem, in order: its label (`kick: …`, or a part's key in
+   * `scenes()`) and, with scenes, the index of its scene. Absent when the code
+   * has neither and renders as a single mix.
    */
-  stems?: string[];
+  stems?: StemHeader[];
+  /** The scenes' names, in order, when the code calls `scenes()`. */
+  scenes?: string[];
+}
+
+export interface StemHeader {
+  label: string;
+  scene?: number;
 }
 
 export interface RenderResult extends RenderHeader {

@@ -18,6 +18,9 @@ declare module "@strudel/core" {
     withContext(func: (context: Record<string, unknown>) => Record<string, unknown>): Pattern;
   }
   export function evalScope(...modules: unknown[]): Promise<unknown[]>;
+  export function isPattern(thing: unknown): boolean;
+  export function stack(...patterns: Pattern[]): Pattern;
+  export const silence: Pattern;
 }
 
 declare module "@strudel/mini" {

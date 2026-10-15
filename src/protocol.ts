@@ -19,4 +19,6 @@ export interface SessionInput {
   code: string;
   cycles: number;
   bpm: number;
+  /** Where the clip is. `scenes()` only works in Session View. */
+  view: "session" | "arrangement";
 }

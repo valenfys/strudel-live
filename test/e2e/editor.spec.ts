@@ -120,7 +120,7 @@ test("renders each label to its own stem", async ({ openEditor }) => {
   expect(await closed).toBe("rendered");
 
   const rendered = (await result)!;
-  expect(rendered.stems).toEqual(["lead", "muted", "Strudel 1", "bass"]);
+  expect(rendered.stems?.map((stem) => stem.label)).toEqual(["lead", "muted", "Strudel 1", "bass"]);
   // 1 bar of 4/4 at 120 BPM is 2 seconds.
   for (const samples of rendered.samples) expect(samples.length).toBe(2 * 48000 * 2);
   const [lead, muted, anonymous, bass] = rendered.samples.map(peak);
@@ -137,12 +137,66 @@ test("renders the starter code to a stem per part", async ({ openEditor }) => {
   expect(await closed).toBe("rendered");
 
   const rendered = (await result)!;
-  expect(rendered.stems).toEqual(["kick", "snare", "hats", "bass", "chords"]);
+  expect(rendered.stems?.map((stem) => stem.label)).toEqual(["kick", "snare", "hats", "bass", "chords"]);
   // The tests don't load sample audio, so only the synth parts are audible.
   const peaks = rendered.samples.map(peak);
   expect(peaks[3]).toBeGreaterThan(0.01);
   expect(peaks[4]).toBeGreaterThan(0.01);
   for (const p of peaks) expect(p).toBeLessThan(1);
+});
+
+const SCENES_CODE = [
+  'let lead = note("c4 e4").s("square").gain(.5)',
+  'let bass = note("c2*2").s("sawtooth").gain(.5)',
+  "scenes({ intro: { lead }, drop: { lead, bass }, outro: {} })",
+].join("\n");
+
+test("renders a stem per part of each scene", async ({ openEditor }) => {
+  const { page, closed, result } = await openEditor({ code: SCENES_CODE, cycles: 1, bpm: 120 });
+
+  await page.locator("#render").click();
+  expect(await closed).toBe("rendered");
+
+  const rendered = (await result)!;
+  expect(rendered.scenes).toEqual(["intro", "drop", "outro"]);
+  expect(rendered.stems).toEqual([
+    { label: "lead", scene: 0 },
+    { label: "lead", scene: 1 },
+    { label: "bass", scene: 1 },
+  ]);
+  for (const samples of rendered.samples) {
+    expect(samples.length).toBe(2 * 48000 * 2);
+    expect(peak(samples)).toBeGreaterThan(0.01);
+  }
+});
+
+test("previews the scene chosen in the picker", async ({ openEditor }) => {
+  const { page } = await openEditor({ code: SCENES_CODE });
+  const picker = page.locator("#scene");
+
+  await expect(page.locator("#scene-picker")).toBeHidden();
+  await page.locator("#preview").click();
+  await expect(picker.locator("option")).toHaveText(["intro", "drop", "outro"]);
+  await expect(picker).toHaveValue("intro");
+
+  await picker.selectOption("drop");
+  await expect(picker).toHaveValue("drop");
+  await expect(page.locator("#status")).toHaveText("Previewing");
+  await page.locator("#preview").click();
+});
+
+test("explains that scenes need Session View", async ({ openEditor }) => {
+  const { page } = await openEditor({ code: SCENES_CODE, view: "arrangement" });
+
+  await page.locator("#render").click();
+  await expect(page.locator("#status")).toHaveText("scenes() only works in Session View");
+});
+
+test("rejects mixing labels and scenes", async ({ openEditor }) => {
+  const { page } = await openEditor({ code: `${SCENES_CODE}\nhats: s("hh*8")` });
+
+  await page.locator("#render").click();
+  await expect(page.locator("#status")).toHaveText("Use either labels or scenes(), not both");
 });
 
 test("cancelling closes without a render", async ({ openEditor }) => {

@@ -11,7 +11,7 @@ import {
   type ExtensionContext,
   type Handle,
 } from "@ableton-extensions/sdk";
-import { BEATS_PER_CYCLE } from "./protocol.js";
+import { BEATS_PER_CYCLE, type SessionInput } from "./protocol.js";
 import { STARTER_CODE, STARTER_CYCLES } from "./starter.js";
 import { runEditorSession, type RenderResult } from "./server.js";
 import { encodeStrudelWav, readStrudelData, type StrudelData } from "./wav.js";
@@ -54,8 +54,8 @@ async function newClip(context: Context, slot: ClipSlot<"1.0.0">) {
     console.warn("Clip slot is not empty.");
     return;
   }
-  const rendered = await edit(context, { code: STARTER_CODE, cycles: STARTER_CYCLES });
-  if (rendered) await place(context, { row: track.clipSlots.indexOf(slot) }, rendered, new Map(), track);
+  const result = await edit(context, { code: STARTER_CODE, cycles: STARTER_CYCLES }, "session");
+  if (result) await place(context, { row: track.clipSlots.indexOf(slot) }, 1, result, [], track);
 }
 
 async function editClip(context: Context, clip: AudioClip<"1.0.0">) {
@@ -66,43 +66,55 @@ async function editClip(context: Context, clip: AudioClip<"1.0.0">) {
   }
   console.log(`Read Strudel code from ${clip.filePath}`);
   const parent = clip.parent;
-  let position: Position;
+  // Where the group starts: the row of its first scene, or the clip's position
+  // in the Arrangement (which has no scenes).
+  let base: Position;
+  let rows = 1;
   let track: AudioTrack<"1.0.0">;
   if (parent instanceof ClipSlot && parent.parent instanceof AudioTrack) {
     track = parent.parent;
-    position = { row: track.clipSlots.indexOf(parent) };
+    // Clamped in case rows were moved since the last render.
+    base = { row: Math.max(0, track.clipSlots.indexOf(parent) - (existing.scene ?? 0)) };
+    rows = existing.scenes?.length ?? 1;
   } else if (parent instanceof AudioTrack) {
     track = parent;
-    position = { startTime: clip.startTime };
+    base = { startTime: clip.startTime };
   } else {
     console.warn("Editing clips in take lanes isn't supported yet.");
     return;
   }
   // Editing one stem re-renders the whole group.
-  const current = existing.group
-    ? findGroup(context, position, existing.group)
-    : new Map([[existing.stem ?? "", { track, clip }]]);
-  const rendered = await edit(context, existing);
-  if (rendered) await place(context, position, rendered, current, track);
+  const current = existing.group ? findGroup(context, base, rows, existing.group) : [{ track, clip, data: existing }];
+  const result = await edit(context, existing, "row" in base ? "session" : "arrangement");
+  if (result) await place(context, base, rows, result, current, track);
 }
 
-/** Where a clip and its sibling stems sit: a Session row, or an Arrangement position in beats. */
+/** Where a clip sits: a Session row, or an Arrangement position in beats. */
 type Position = { row: number } | { startTime: number };
+
+/** Where the clip for `scene` goes, given where the group starts. */
+function offset(base: Position, scene = 0): Position {
+  return "row" in base ? { row: base.row + scene } : base;
+}
 
 interface Placed {
   track: AudioTrack<"1.0.0">;
   clip: AudioClip<"1.0.0">;
+  data: StrudelData;
 }
 
-/** The clips of a stems group at `position`, by stem label. */
-function findGroup(context: Context, position: Position, group: string): Map<string, Placed> {
-  const found = new Map<string, Placed>();
+/** The clips of a stems group in the `rows` rows from `base`, or at `base` in the Arrangement. */
+function findGroup(context: Context, base: Position, rows: number, group: string): Placed[] {
+  const found: Placed[] = [];
+  const positions = "row" in base ? Array.from({ length: rows }, (_, i) => offset(base, i)) : [base];
   for (const track of context.application.song.tracks) {
     if (!(track instanceof AudioTrack)) continue;
-    const clip = clipAt(track, position);
-    if (!(clip instanceof AudioClip)) continue;
-    const data = readStrudelData(fs.readFileSync(clip.filePath));
-    if (data?.group === group) found.set(data.stem ?? "", { track, clip });
+    for (const position of positions) {
+      const clip = clipAt(track, position);
+      if (!(clip instanceof AudioClip)) continue;
+      const data = readStrudelData(fs.readFileSync(clip.filePath));
+      if (data?.group === group) found.push({ track, clip, data });
+    }
   }
   return found;
 }
@@ -119,49 +131,56 @@ async function deleteClip(track: AudioTrack<"1.0.0">, position: Position, clip: 
 }
 
 /**
- * Puts rendered clips at `position`, replacing the group's current clips in
- * place (an audio clip's file can't be swapped). Each stem goes on the track
- * its previous version was on, or else a free track named after its label,
- * `fallback` if that's free, or a new track. Stems whose label is gone from
- * the code have their clips deleted.
+ * Replaces a group's clips (`current`, in the `rows` rows from `base`) with a
+ * new render, in place: an audio clip's file can't be swapped. Rows match
+ * scenes by position. If there are more scenes than rows, scenes are inserted
+ * below, so the rest of the set moves down rather than being overwritten.
+ *
+ * Each label keeps the track it was on, or else goes on a free track named
+ * after it, `fallback` if that's free, or a new track. Clips whose label or
+ * scene is gone from the code are deleted; tracks and scenes are kept.
  */
 async function place(
   context: Context,
-  position: Position,
-  rendered: Rendered[],
-  current: Map<string, Placed>,
+  base: Position,
+  rows: number,
+  { rendered, scenes }: Edited,
+  current: Placed[],
   fallback: AudioTrack<"1.0.0">,
 ) {
-  const keyOf = (r: Rendered) => r.data.stem ?? "";
-  const keys = new Set(rendered.map(keyOf));
+  const song = context.application.song;
+  const labelOf = (data: StrudelData) => data.stem ?? "";
+  const labels = new Set(rendered.map((r) => labelOf(r.data)));
   // Read before deleting anything: a deleted clip's properties are gone.
-  const looks = new Map([...current].map(([key, { clip }]) => [key, { name: clip.name, color: clip.color }]));
-  const color = [...looks.values()][0]?.color;
-  const used = new Set<AudioTrack<"1.0.0">>();
-  for (const [key, { track, clip }] of current) {
-    if (keys.has(key)) used.add(track);
-    else await deleteClip(track, position, clip);
+  const colors = new Map(current.map(({ clip, data }) => [`${data.scene ?? 0}/${labelOf(data)}`, clip.color]));
+  const color = current[0]?.clip.color;
+  const tracks = new Map<string, AudioTrack<"1.0.0">>();
+  for (const { track, clip, data } of current) {
+    if (labels.has(labelOf(data))) tracks.set(labelOf(data), track);
+    await deleteClip(track, offset(base, data.scene), clip);
+  }
+
+  if (scenes && "row" in base) {
+    for (let row = base.row + rows; row < base.row + scenes.length; row++) await song.createScene(row);
+    for (const [i, name] of scenes.entries()) song.scenes[base.row + i].name = name;
   }
 
   for (const r of rendered) {
-    const previous = current.get(keyOf(r));
-    let track: AudioTrack<"1.0.0">;
-    if (previous) {
-      track = previous.track;
-      await deleteClip(track, position, previous.clip);
-    } else {
+    const label = labelOf(r.data);
+    const position = offset(base, r.data.scene);
+    let track = tracks.get(label);
+    if (!track) {
       const beats = r.data.cycles * BEATS_PER_CYCLE;
-      track =
-        freeTrack(context, position, beats, r.data.stem, fallback, used) ??
-        (await context.application.song.createAudioTrack());
+      const used = new Set(tracks.values());
+      track = freeTrack(context, position, beats, r.data.stem, fallback, used) ?? (await song.createAudioTrack());
       if (r.data.stem) track.name = r.data.stem;
+      tracks.set(label, track);
     }
-    used.add(track);
     const clip = await placeAt(track, position, r);
-    const look = looks.get(keyOf(r));
     // A stem is named after its label; a clip without one keeps its name.
-    clip.name = r.data.stem ?? (look?.name || "Strudel");
-    const clipColor = look?.color ?? color;
+    const previous = current.find((p) => labelOf(p.data) === label && (p.data.scene ?? 0) === (r.data.scene ?? 0));
+    clip.name = r.data.stem ?? (previous?.clip.name || "Strudel");
+    const clipColor = colors.get(`${r.data.scene ?? 0}/${label}`) ?? color;
     if (clipColor !== undefined) clip.color = clipColor;
   }
 }
@@ -199,23 +218,40 @@ interface Rendered {
   data: StrudelData;
 }
 
+interface Edited {
+  rendered: Rendered[];
+  /** The scenes' names, when the code calls `scenes()`. */
+  scenes?: string[];
+}
+
 /** Opens the editor; if the user renders, writes a WAV per stem into the project. */
 async function edit(
   context: Context,
   initial: Pick<StrudelData, "code" | "cycles" | "group">,
-): Promise<Rendered[] | undefined> {
+  view: SessionInput["view"],
+): Promise<Edited | undefined> {
   const bpm = context.application.song.tempo;
   const { code, cycles } = initial;
-  const result = await runEditorSession({ code, cycles, bpm }, (url) => context.ui.showModalDialog(url, 960, 640));
+  const result = await runEditorSession({ code, cycles, bpm, view }, (url) =>
+    context.ui.showModalDialog(url, 960, 640),
+  );
   if (!result) return undefined;
   const group = result.stems && (initial.group ?? randomUUID());
   const rendered: Rendered[] = [];
   for (const [i, samples] of result.samples.entries()) {
-    const stem = result.stems?.[i];
-    const data: StrudelData = { version: 1, code: result.code, cycles: result.cycles, bpm, stem, group };
+    const data: StrudelData = {
+      version: 1,
+      code: result.code,
+      cycles: result.cycles,
+      bpm,
+      stem: result.stems?.[i].label,
+      group,
+      scene: result.stems?.[i].scene,
+      scenes: result.scenes,
+    };
     rendered.push({ filePath: await writeIntoProject(context, result, samples, data), data });
   }
-  return rendered;
+  return { rendered, scenes: result.scenes };
 }
 
 async function writeIntoProject(
@@ -228,8 +264,9 @@ async function writeIntoProject(
   // `ableton-extensions-cli run` doesn't do by default.
   const tempDirectory = context.environment.tempDirectory ?? path.join(os.tmpdir(), "strudel-live");
   fs.mkdirSync(tempDirectory, { recursive: true });
-  const stem = data.stem ? `-${data.stem.replace(/[^\w-]+/g, "_")}` : "";
-  const fileName = `strudel-${randomUUID().slice(0, 8)}${stem}-${Math.round(data.bpm)}bpm.wav`;
+  const scene = data.scene === undefined ? undefined : data.scenes?.[data.scene];
+  const name = [scene, data.stem].map((part) => (part ? `-${part.replace(/[^\w-]+/g, "_")}` : "")).join("");
+  const fileName = `strudel-${randomUUID().slice(0, 8)}${name}-${Math.round(data.bpm)}bpm.wav`;
   const tempPath = path.join(tempDirectory, fileName);
   fs.writeFileSync(tempPath, encodeStrudelWav(samples, result.sampleRate, result.channels, data));
   const imported = await context.resources.importIntoProject(tempPath);

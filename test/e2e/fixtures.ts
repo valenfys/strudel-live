@@ -50,7 +50,7 @@ export const test = base.extend<{ openEditor: (input?: Partial<SessionInput>) =>
       let showUrl!: (url: string) => void;
       const url = new Promise<string>((resolve) => (showUrl = resolve));
       const result = runEditorSession(
-        { code: DEFAULT_CODE, cycles: 1, bpm: 120, ...input },
+        { code: DEFAULT_CODE, cycles: 1, bpm: 120, view: "session", ...input },
         (dialogUrl) => {
           showUrl(dialogUrl);
           return closed;

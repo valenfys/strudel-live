@@ -17,10 +17,14 @@ export interface StrudelData {
   /** The label of the part this clip holds, when the code has labels. */
   stem?: string;
   /**
-   * Shared by the stems of one render, which sit in the same Session row or at
-   * the same Arrangement position on their own tracks.
+   * Shared by the stems of one render, which sit on their own tracks in the
+   * same Session row (one row per scene) or at the same Arrangement position.
    */
   group?: string;
+  /** With `scenes()`: the index of this clip's scene, which is its row in the group. */
+  scene?: number;
+  /** With `scenes()`: every scene's name, in order. */
+  scenes?: string[];
 }
 
 function chunk(id: string, payload: Buffer): Buffer {

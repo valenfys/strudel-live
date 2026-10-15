@@ -28,7 +28,7 @@ describe("runEditorSession", () => {
   it("serves the session and receives a render without web globals", async () => {
     for (const name of MISSING_IN_LIVE) vi.stubGlobal(name, undefined);
 
-    const input = { code: 'note("c ♯")', cycles: 2, bpm: 120 };
+    const input = { code: 'note("c ♯")', cycles: 2, bpm: 120, view: "session" as const };
     const header = { code: 's("bd")', cycles: 2, sampleRate: 48000, channels: 1 };
     const result = await runEditorSession(
       input,
