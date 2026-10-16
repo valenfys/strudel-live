@@ -35,6 +35,8 @@ declare module "@strudel/transpiler" {
 
 declare module "@strudel/draw" {
   export function getDrawContext(): CanvasRenderingContext2D;
+  /** Colours for visuals drawn on a canvas, like a CodeMirror theme's settings. */
+  export function setTheme(settings: Record<string, string>): void;
 }
 
 declare module "@strudel/webaudio" {
@@ -61,6 +63,7 @@ declare module "@strudel/webaudio" {
 
 declare module "@strudel/codemirror" {
   import type { Pattern } from "@strudel/core";
+  import type { Extension } from "@codemirror/state";
   import type { EditorView } from "@codemirror/view";
 
   export type Keybindings = "codemirror" | "vim" | "emacs" | "vscode";
@@ -82,6 +85,10 @@ declare module "@strudel/codemirror" {
     fontSize: number;
   }
   export const defaultSettings: EditorSettings;
+  /** Editor themes by name, as chosen by the `theme` setting. */
+  export const themes: Record<string, Extension>;
+  /** Each theme's colours, set as CSS variables (`--foreground`, …) and handed to @strudel/draw. */
+  export const settings: Record<string, Record<string, string>>;
   export const codemirrorSettings: {
     get(): EditorSettings;
     set(settings: EditorSettings): void;
