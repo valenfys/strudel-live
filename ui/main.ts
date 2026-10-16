@@ -20,7 +20,16 @@ import {
   samples,
   webaudioOutput,
 } from "@strudel/webaudio";
-import { cyclesPerSecond, RENDER_PATH, SESSION_PATH, type SessionInput } from "../src/protocol";
+import {
+  cyclesPerSecond,
+  RENDER_PATH,
+  SESSION_PATH,
+  THEME_CSS_PATH,
+  THEMES_PATH,
+  type SessionInput,
+  type ThemeChoice,
+  type ThemeSettings,
+} from "../src/protocol";
 import { encodeRenderBody } from "../src/renderBody";
 import { closeWithResult } from "./bridge";
 import { queryOnsets, renderOffline } from "./render";
@@ -45,6 +54,9 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const editorRoot = $<HTMLDivElement>("editor");
 const cyclesInput = $<HTMLInputElement>("cycles");
 const keymapSelect = $<HTMLSelectElement>("keymap");
+const themeSelect = $<HTMLSelectElement>("theme");
+const settingsButton = $<HTMLButtonElement>("settings-button");
+const settingsPanel = $<HTMLDivElement>("settings");
 const scenePicker = $<HTMLLabelElement>("scene-picker");
 const sceneSelect = $<HTMLSelectElement>("scene");
 const previewButton = $<HTMLButtonElement>("preview");
@@ -191,8 +203,34 @@ function updateEditorSettings(changes: Partial<EditorSettings>) {
 function setPreviewing(started: boolean) {
   previewing = started;
   previewButton.textContent = started ? "Stop" : "Preview";
+  previewButton.setAttribute("aria-pressed", String(started));
   if (started) setStatus("Previewing");
   else if (!status.classList.contains("error")) setStatus(`Ready · ${bpm} BPM`);
+}
+
+/** Lists Live's themes in the picker. The picker stays at "Follow system" if Live's themes weren't found. */
+async function loadThemes() {
+  const response = await fetch(THEMES_PATH);
+  if (!response.ok) return;
+  const { themes, theme }: ThemeSettings = await response.json();
+  themeSelect.append(...themes.map((name) => new Option(name, name)));
+  themeSelect.value = theme ?? "";
+}
+
+async function chooseTheme(theme: string | null) {
+  const response = await fetch(THEMES_PATH, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ theme } satisfies ThemeChoice),
+  });
+  if (!response.ok) throw new Error(`Couldn't change the theme: ${response.status}`);
+  const link = document.querySelector<HTMLLinkElement>(`link[href^="${THEME_CSS_PATH}"]`)!;
+  link.href = `${THEME_CSS_PATH}?t=${Date.now()}`;
+}
+
+function toggleSettings(open = settingsPanel.hidden) {
+  settingsPanel.hidden = !open;
+  settingsButton.setAttribute("aria-expanded", String(open));
 }
 
 async function main() {
@@ -202,6 +240,7 @@ async function main() {
   bpm = input.bpm;
   view = input.view;
   cyclesInput.value = String(input.cycles);
+  loadThemes().catch((error) => console.error("Couldn't load Live's themes:", error));
 
   initAudioOnFirstClick();
   miniAllStrings();
@@ -266,6 +305,22 @@ sceneSelect.addEventListener("change", () => {
 keymapSelect.addEventListener("change", () => {
   updateEditorSettings({ keybindings: keymapSelect.value as Keybindings });
   mirror?.editor.focus();
+});
+themeSelect.addEventListener("change", () => {
+  chooseTheme(themeSelect.value || null).catch((error) => setStatus(String(error.message ?? error), true));
+});
+settingsButton.addEventListener("click", () => toggleSettings());
+document.addEventListener("pointerdown", (event) => {
+  const target = event.target as Node;
+  if (!settingsPanel.hidden && !settingsPanel.contains(target) && !settingsButton.contains(target)) {
+    toggleSettings(false);
+  }
+});
+settingsPanel.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    toggleSettings(false);
+    settingsButton.focus();
+  }
 });
 $("cancel").addEventListener("click", () => {
   stopPreview();

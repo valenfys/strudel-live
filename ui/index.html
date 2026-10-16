@@ -4,10 +4,46 @@
     <meta charset="UTF-8" />
     <title>Strudel</title>
     <style>
+      /*
+       * Live's colours, as --live-* custom properties named after the entries
+       * of its theme files. /live/theme.css (below) sets them all from the
+       * theme in use; these fallbacks, from Live's standard light and dark
+       * themes, cover what the page uses when Live's themes aren't found.
+       */
       :root {
-        color-scheme: dark;
+        color-scheme: light;
+        --live-surface-background: #a5a5a5;
+        --live-control-background: #cfcfcf;
+        --live-control-foreground: #121212;
+        --live-control-contrast-frame: #4f4f4f;
+        --live-control-selection-frame: #4f4f4f;
+        --live-control-on-foreground: #121212;
+        --live-chosen-default: #ffb901;
+        --live-text-disabled: #6e6e6e;
+        --live-alert: #ff7d43;
+        --live-retro-display-background: #242424;
+        --live-surface-highlight: #bcbcbc;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --live-surface-background: #363636;
+          --live-control-background: #1e1e1e;
+          --live-control-foreground: #b5b5b5;
+          --live-control-contrast-frame: #111111;
+          --live-control-selection-frame: #919191;
+          --live-control-on-foreground: #070707;
+          --live-chosen-default: #ffad56;
+          --live-text-disabled: #757575;
+          --live-alert: #e76942;
+          --live-retro-display-background: #181818;
+          --live-surface-highlight: #464646;
+        }
+      }
+      :root {
         font:
-          13px -apple-system,
+          12px "Ableton Sans Small",
+          -apple-system,
           system-ui,
           sans-serif;
       }
@@ -16,8 +52,8 @@
         height: 100vh;
         display: flex;
         flex-direction: column;
-        background: #1e1e1e;
-        color: #ddd;
+        background: var(--live-surface-background);
+        color: var(--live-control-foreground);
       }
       /* Pattern visuals (.pianoroll() etc.) draw behind the editor. */
       #test-canvas {
@@ -27,8 +63,9 @@
         flex: 1;
         min-height: 0;
         margin: 12px 12px 0;
-        border: 1px solid #333;
-        background: #11111180;
+        border: 1px solid var(--live-control-contrast-frame);
+        /* Strudel's syntax colours are made for a dark background. */
+        background: var(--live-retro-display-background);
       }
       #editor .cm-editor {
         height: 100%;
@@ -74,43 +111,140 @@
         white-space: pre-wrap;
       }
       footer {
+        position: relative;
         display: flex;
         gap: 8px;
         align-items: center;
-        padding: 12px;
+        padding: 10px 12px;
       }
       #status {
         flex: 1;
-        color: #999;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
       #status.error {
-        color: #f77;
+        color: var(--live-alert);
+      }
+      /* Elements styled with a display of their own still hide. */
+      [hidden] {
+        display: none !important;
+      }
+      label {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      /* Controls drawn like Live's: flat, square, with a thin dark frame. */
+      button,
+      select,
+      input {
+        box-sizing: border-box;
+        height: 18px;
+        margin: 0;
+        padding: 0 8px;
+        border: 1px solid var(--live-control-contrast-frame);
+        border-radius: 0;
+        background: var(--live-control-background);
+        color: var(--live-control-foreground);
+        font: inherit;
+        appearance: none;
+      }
+      button:focus-visible,
+      select:focus-visible,
+      input:focus-visible {
+        outline: 1px solid var(--live-control-selection-frame);
+        outline-offset: 1px;
+      }
+      button:disabled,
+      select:disabled,
+      input:disabled {
+        color: var(--live-text-disabled);
+      }
+      button {
+        min-width: 56px;
+      }
+      button:active:not(:disabled),
+      button[aria-pressed="true"] {
+        background: var(--live-chosen-default);
+        color: var(--live-control-on-foreground);
+      }
+      /* Live's pop-up menus: a filled triangle at the right. */
+      select {
+        padding-right: 18px;
+        background-image:
+          linear-gradient(45deg, transparent 50%, currentColor 50%),
+          linear-gradient(-45deg, transparent 50%, currentColor 50%);
+        background-position:
+          right 9px center,
+          right 5px center;
+        background-size: 4px 4px;
+        background-repeat: no-repeat;
+      }
+      select option {
+        background: var(--live-control-background);
+        color: var(--live-control-foreground);
       }
       input {
         width: 48px;
+        padding: 0 4px;
+        text-align: center;
+      }
+      input::-webkit-inner-spin-button,
+      input::-webkit-outer-spin-button {
+        appearance: none;
+        margin: 0;
       }
       kbd {
         font: inherit;
-        color: #999;
+        opacity: 0.7;
+      }
+
+      /* Settings that rarely change, behind the ⋯ button. */
+      #settings-button {
+        min-width: 24px;
+        padding: 0;
+      }
+      #settings {
+        position: absolute;
+        right: 12px;
+        bottom: 100%;
+        display: grid;
+        grid-template-columns: auto auto;
+        gap: 6px 10px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid var(--live-control-contrast-frame);
+        background: var(--live-surface-highlight);
+      }
+      #settings label {
+        display: contents;
       }
     </style>
+    <link rel="stylesheet" href="/live/theme.css" />
   </head>
   <body>
     <div id="editor"></div>
     <footer>
       <span id="status">Loading Strudel…</span>
-      <label
-        >Keys
-        <select id="keymap">
-          <option value="codemirror">Default</option>
-          <option value="vscode">VS Code</option>
-          <option value="vim">Vim</option>
-          <option value="emacs">Emacs</option>
-        </select>
-      </label>
+      <div id="settings" hidden>
+        <label
+          >Keys
+          <select id="keymap">
+            <option value="codemirror">Default</option>
+            <option value="vscode">VS Code</option>
+            <option value="vim">Vim</option>
+            <option value="emacs">Emacs</option>
+          </select>
+        </label>
+        <label
+          >Theme
+          <select id="theme">
+            <option value="">Follow system</option>
+          </select>
+        </label>
+      </div>
       <label id="scene-picker" hidden
         >Scene
         <select id="scene"></select
@@ -118,7 +252,8 @@
       <label>Bars <input id="cycles" type="number" min="1" max="64" /></label>
       <button id="preview" disabled title="Ctrl+Enter or Alt+Enter to update, Ctrl+. to stop">Preview</button>
       <button id="cancel">Cancel</button>
-      <button id="render" disabled>Render ⌘↵</button>
+      <button id="render" disabled>Render <kbd>⌘↵</kbd></button>
+      <button id="settings-button" title="Settings" aria-haspopup="true" aria-expanded="false">⋯</button>
     </footer>
     <script type="module" src="./main.ts"></script>
   </body>
