@@ -42,7 +42,7 @@
       }
       :root {
         font:
-          12px "Ableton Sans Small",
+          11px "Ableton Sans Small",
           -apple-system,
           system-ui,
           sans-serif;
@@ -111,9 +111,9 @@
       footer {
         position: relative;
         display: flex;
-        gap: 8px;
+        gap: 6px;
         align-items: center;
-        padding: 10px 12px;
+        padding: 6px 8px;
       }
       #status {
         flex: 1;
@@ -130,18 +130,18 @@
       }
       label {
         display: flex;
-        gap: 6px;
+        gap: 4px;
         align-items: center;
       }
 
-      /* Controls drawn like Live's: flat, square, with a thin dark frame. */
+      /* Controls drawn like Live's at 100% zoom: small, flat, square, with a thin dark frame. */
       button,
       select,
       input {
         box-sizing: border-box;
-        height: 18px;
+        height: 15px;
         margin: 0;
-        padding: 0 8px;
+        padding: 0 6px;
         border: 1px solid var(--live-control-contrast-frame);
         border-radius: 0;
         background: var(--live-control-background);
@@ -161,7 +161,7 @@
         color: var(--live-text-disabled);
       }
       button {
-        min-width: 56px;
+        min-width: 44px;
       }
       button:active:not(:disabled),
       button[aria-pressed="true"] {
@@ -170,13 +170,13 @@
       }
       /* Live's pop-up menus: a filled triangle at the right. */
       select {
-        padding-right: 18px;
+        padding-right: 16px;
         background-image:
           linear-gradient(45deg, transparent 50%, currentColor 50%),
           linear-gradient(-45deg, transparent 50%, currentColor 50%);
         background-position:
-          right 9px center,
-          right 5px center;
+          right 8px center,
+          right 4px center;
         background-size: 4px 4px;
         background-repeat: no-repeat;
       }
@@ -185,7 +185,7 @@
         color: var(--live-control-foreground);
       }
       input {
-        width: 48px;
+        width: 36px;
         padding: 0 4px;
         text-align: center;
       }
@@ -201,18 +201,18 @@
 
       /* Settings that rarely change, behind the ⋯ button. */
       #settings-button {
-        min-width: 24px;
+        min-width: 20px;
         padding: 0;
       }
       #settings {
         position: absolute;
-        right: 12px;
+        right: 8px;
         bottom: 100%;
         display: grid;
         grid-template-columns: auto auto;
-        gap: 6px 10px;
+        gap: 4px 8px;
         align-items: center;
-        padding: 10px;
+        padding: 8px;
         border: 1px solid var(--live-control-contrast-frame);
         background: var(--live-surface-highlight);
       }
