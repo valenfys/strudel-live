@@ -55,7 +55,7 @@ export const test = base.extend<{ openEditor: (input?: Partial<SessionInput>) =>
           showUrl(dialogUrl);
           return closed;
         },
-        UI_ROOT,
+        { uiRoot: UI_ROOT, liveResources: null },
       );
 
       await page.goto(await url);

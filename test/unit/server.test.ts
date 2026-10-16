@@ -1,26 +1,13 @@
-import * as http from "node:http";
 import * as os from "node:os";
 import { TextEncoder } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { encodeRenderBody } from "../../src/renderBody";
 import { runEditorSession } from "../../src/server";
+import { request } from "./request";
 
 // Live's Extension Host runs src/ without these web-style globals, although
 // plain Node (and so the e2e tests) has them. Keep in sync with eslint.config.js.
 const MISSING_IN_LIVE = ["URL", "URLSearchParams", "TextEncoder", "TextDecoder", "fetch", "Blob"];
-
-function request(url: string, method = "GET", body?: Uint8Array): Promise<{ status: number; body: string }> {
-  return new Promise((resolve, reject) => {
-    const req = http.request(url, { method }, (res) => {
-      let data = "";
-      res.setEncoding("utf8");
-      res.on("data", (part) => (data += part));
-      res.on("end", () => resolve({ status: res.statusCode!, body: data }));
-    });
-    req.on("error", reject);
-    req.end(body);
-  });
-}
 
 describe("runEditorSession", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -44,7 +31,7 @@ describe("runEditorSession", () => {
         expect((await request(`${origin}/api/render${session}`, "POST", body)).status).toBe(204);
         return "rendered";
       },
-      os.tmpdir(),
+      { uiRoot: os.tmpdir(), liveResources: null },
     );
 
     expect(result).toMatchObject(header);
