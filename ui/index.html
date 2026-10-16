@@ -21,8 +21,11 @@
         --live-chosen-default: #ffb901;
         --live-text-disabled: #6e6e6e;
         --live-alert: #ff7d43;
-        --live-retro-display-background: #242424;
         --live-surface-highlight: #bcbcbc;
+        --live-control-text-back: #dfdfdf;
+        --live-selection-background: #cdf8ff;
+        --live-selection-foreground: #121212;
+        --live-search-indication: #ffde72;
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -36,16 +39,16 @@
           --live-chosen-default: #ffad56;
           --live-text-disabled: #757575;
           --live-alert: #e76942;
-          --live-retro-display-background: #181818;
           --live-surface-highlight: #464646;
+          --live-control-text-back: #242424;
+          --live-selection-background: #b0ddeb;
+          --live-selection-foreground: #070707;
+          --live-search-indication: #ecca6d;
         }
       }
       :root {
-        font:
-          11px "Ableton Sans Small",
-          -apple-system,
-          system-ui,
-          sans-serif;
+        --dialog-font: "Ableton Sans Small", -apple-system, system-ui, sans-serif;
+        font: 11px var(--dialog-font);
       }
       body {
         margin: 0;
@@ -59,11 +62,11 @@
       #test-canvas {
         z-index: -1;
       }
+      /* The rest of the editor's colours are in editorTheme.ts. */
       #editor {
         flex: 1;
         min-height: 0;
-        /* Strudel's syntax colours are made for a dark background. */
-        background: var(--live-retro-display-background);
+        background: var(--live-control-text-back);
       }
       #editor .cm-editor {
         height: 100%;
@@ -90,7 +93,7 @@
       }
       .autocomplete-info-section-title {
         margin: 8px 0 4px;
-        color: #999;
+        color: var(--live-text-disabled);
       }
       .autocomplete-info-params-list {
         margin: 0;
@@ -100,12 +103,12 @@
         font-family: ui-monospace, Menlo, monospace;
       }
       .autocomplete-info-param-type {
-        color: #999;
+        color: var(--live-text-disabled);
       }
       .autocomplete-info-example-code {
         margin: 4px 0;
         padding: 4px 6px;
-        background: #0004;
+        background: var(--live-control-text-back);
         white-space: pre-wrap;
       }
       footer {
@@ -128,16 +131,19 @@
       [hidden] {
         display: none !important;
       }
-      label {
+      footer label {
         display: flex;
         gap: 4px;
         align-items: center;
       }
 
-      /* Controls drawn like Live's at 100% zoom: small, flat, square, with a thin dark frame. */
-      button,
-      select,
-      input {
+      /*
+       * Controls drawn like Live's at 100% zoom: small, flat, square, with a
+       * thin dark frame. The editor's search panel has its own (editorTheme.ts).
+       */
+      footer button,
+      footer select,
+      footer input {
         box-sizing: border-box;
         height: 15px;
         margin: 0;
@@ -149,27 +155,27 @@
         font: inherit;
         appearance: none;
       }
-      button:focus-visible,
-      select:focus-visible,
-      input:focus-visible {
+      footer button:focus-visible,
+      footer select:focus-visible,
+      footer input:focus-visible {
         outline: 1px solid var(--live-control-selection-frame);
         outline-offset: 1px;
       }
-      button:disabled,
-      select:disabled,
-      input:disabled {
+      footer button:disabled,
+      footer select:disabled,
+      footer input:disabled {
         color: var(--live-text-disabled);
       }
-      button {
+      footer button {
         min-width: 44px;
       }
-      button:active:not(:disabled),
-      button[aria-pressed="true"] {
+      footer button:active:not(:disabled),
+      footer button[aria-pressed="true"] {
         background: var(--live-chosen-default);
         color: var(--live-control-on-foreground);
       }
       /* Live's pop-up menus: a filled triangle at the right. */
-      select {
+      footer select {
         padding-right: 16px;
         background-image:
           linear-gradient(45deg, transparent 50%, currentColor 50%),
@@ -180,17 +186,17 @@
         background-size: 4px 4px;
         background-repeat: no-repeat;
       }
-      select option {
+      footer select option {
         background: var(--live-control-background);
         color: var(--live-control-foreground);
       }
-      input {
+      footer input {
         width: 36px;
         padding: 0 4px;
         text-align: center;
       }
-      input::-webkit-inner-spin-button,
-      input::-webkit-outer-spin-button {
+      footer input::-webkit-inner-spin-button,
+      footer input::-webkit-outer-spin-button {
         appearance: none;
         margin: 0;
       }

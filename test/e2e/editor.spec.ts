@@ -25,6 +25,21 @@ test("highlights syntax", async ({ openEditor }) => {
   expect(colors).toBeGreaterThan(1);
 });
 
+test("colours the editor from Live's theme, following the system appearance", async ({ openEditor }) => {
+  const { page } = await openEditor();
+  const colors = () =>
+    page.evaluate(() => ({
+      background: getComputedStyle(document.getElementById("editor")!).backgroundColor,
+      text: getComputedStyle(document.querySelector(".cm-content")!).color,
+    }));
+
+  await page.emulateMedia({ colorScheme: "light" });
+  // The fallbacks for Default Light Neutral Medium (ControlTextBack, ControlForeground).
+  expect(await colors()).toEqual({ background: "rgb(223, 223, 223)", text: "rgb(18, 18, 18)" });
+  await page.emulateMedia({ colorScheme: "dark" });
+  expect(await colors()).toEqual({ background: "rgb(36, 36, 36)", text: "rgb(181, 181, 181)" });
+});
+
 test("completes sound names from the loaded samples", async ({ openEditor }) => {
   const { page, typeLine } = await openEditor();
 

@@ -32,6 +32,7 @@ import {
 } from "../src/protocol";
 import { encodeRenderBody } from "../src/renderBody";
 import { closeWithResult } from "./bridge";
+import { LIVE_THEME, registerLiveTheme, syncDrawTheme } from "./editorTheme";
 import { queryOnsets, renderOffline } from "./render";
 import { definedScenes, partVariables, previewScene, resetScenes, scenes } from "./scenes";
 import { hasLabels, splitStems, tagStems, type Stem } from "./stems";
@@ -45,6 +46,7 @@ const EDITOR_SETTINGS = {
   isActiveLineHighlighted: true,
   isMultiCursorEnabled: true,
   isTabIndentationEnabled: true,
+  theme: LIVE_THEME,
   fontFamily: "ui-monospace, Menlo, monospace",
   fontSize: 13,
 };
@@ -62,6 +64,7 @@ const sceneSelect = $<HTMLSelectElement>("scene");
 const previewButton = $<HTMLButtonElement>("preview");
 const renderButton = $<HTMLButtonElement>("render");
 const status = $<HTMLSpanElement>("status");
+const themeLink = document.querySelector<HTMLLinkElement>(`link[href^="${THEME_CSS_PATH}"]`)!;
 const isMac = /Mac/.test(navigator.platform);
 
 let bpm = 120;
@@ -224,8 +227,7 @@ async function chooseTheme(theme: string | null) {
     body: JSON.stringify({ theme } satisfies ThemeChoice),
   });
   if (!response.ok) throw new Error(`Couldn't change the theme: ${response.status}`);
-  const link = document.querySelector<HTMLLinkElement>(`link[href^="${THEME_CSS_PATH}"]`)!;
-  link.href = `${THEME_CSS_PATH}?t=${Date.now()}`;
+  themeLink.href = `${THEME_CSS_PATH}?t=${Date.now()}`;
 }
 
 function toggleSettings(open = settingsPanel.hidden) {
@@ -243,6 +245,7 @@ async function main() {
   loadThemes().catch((error) => console.error("Couldn't load Live's themes:", error));
 
   initAudioOnFirstClick();
+  registerLiveTheme();
   miniAllStrings();
   const prebaked = Promise.all([
     evalScope(
@@ -284,6 +287,7 @@ async function main() {
     },
   });
   updateEditorSettings({});
+  syncDrawTheme();
   keymapSelect.value = codemirrorSettings.get().keybindings;
   mirror.editor.dispatch({
     effects: StateEffect.appendConfig.of([search({ top: true }), highlightSelectionMatches(), keymap.of(searchKeymap)]),
@@ -310,6 +314,9 @@ themeSelect.addEventListener("change", () => {
   chooseTheme(themeSelect.value || null).catch((error) => setStatus(String(error.message ?? error), true));
 });
 settingsButton.addEventListener("click", () => toggleSettings());
+// Visuals drawn on a canvas need the theme's colours whenever they change.
+themeLink.addEventListener("load", syncDrawTheme);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncDrawTheme);
 document.addEventListener("pointerdown", (event) => {
   const target = event.target as Node;
   if (!settingsPanel.hidden && !settingsPanel.contains(target) && !settingsButton.contains(target)) {
