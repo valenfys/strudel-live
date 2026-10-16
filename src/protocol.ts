@@ -22,3 +22,17 @@ export interface SessionInput {
   /** Where the clip is. `scenes()` only works in Session View. */
   view: "session" | "arrangement";
 }
+
+/** GET → Live's colours as CSS custom properties (`--live-control-background`, …) and its font. */
+export const THEME_CSS_PATH = "/live/theme.css";
+/** GET → ThemeSettings as JSON. PUT a ThemeChoice as JSON → 204. */
+export const THEMES_PATH = "/api/themes";
+
+export interface ThemeSettings {
+  /** The themes in Live, by name. Empty if Live's themes weren't found. */
+  themes: string[];
+  /** The chosen theme, or null to follow the system appearance. */
+  theme: string | null;
+}
+
+export type ThemeChoice = Pick<ThemeSettings, "theme">;

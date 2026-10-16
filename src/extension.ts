@@ -234,8 +234,11 @@ async function edit(
 ): Promise<Edited | undefined> {
   const bpm = context.application.song.tempo;
   const { code, cycles } = initial;
-  const result = await runEditorSession({ code, cycles, bpm, view }, (url) =>
-    context.ui.showModalDialog(url, 960, 640),
+  const { storageDirectory } = context.environment;
+  const result = await runEditorSession(
+    { code, cycles, bpm, view },
+    (url) => context.ui.showModalDialog(url, 960, 640),
+    { settingsFile: storageDirectory && path.join(storageDirectory, "settings.json") },
   );
   if (!result) return undefined;
   const group = result.stems && (initial.group ?? randomUUID());

@@ -266,6 +266,7 @@ test("previews again after a failed render", async ({ openEditor }) => {
 test("switches to Vim keybindings", async ({ openEditor }) => {
   const { page } = await openEditor();
 
+  await page.locator("#settings-button").click();
   await page.locator("#keymap").selectOption("vim");
   await expect(page.locator(".cm-fat-cursor")).toBeVisible();
 });
