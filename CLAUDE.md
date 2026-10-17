@@ -62,7 +62,10 @@ audio clips. See README.md for usage and the scripts.
 - **`npm start` fails with "Failed to connect to Live within 10s"** unless
   Developer Mode is on in Live's settings. Check that first.
 - The Ableton SDK and CLI are proprietary and installed from `vendor/`
-  (gitignored). Never commit them.
+  (gitignored). Never commit them. `vendor/` also holds the rest of the SDK
+  zip: the guides (`vendor/docs/`, HTML), the API reference (`vendor/api/`)
+  and examples (`vendor/examples/`). Check them for how Live behaves before
+  guessing.
 
 ## Verifying changes
 
