@@ -4,7 +4,7 @@ import * as path from "node:path";
 // Live's themes (.ask XML files) and fonts ship inside Live itself. The
 // installed extension can't read them there: Live runs it under Node's
 // permission model, with read access only to the extension's own directory and
-// its storage and temp directories. So the build (build.ts) reads them from the
+// its storage and temp directories. So the build (scripts/build.ts) reads them from the
 // Live that EXTENSION_HOST_PATH points at and bundles them next to the
 // extension, in the layout of LIVE_ASSETS, for the editor server to serve.
 

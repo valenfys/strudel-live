@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 
 // Publishes a GitHub release of the version in package.json, with the .ablx
 // attached. It runs here rather than in CI because the .ablx bundles Live's
-// themes and fonts from the Live installed on this machine (see build.ts).
+// themes and fonts from the Live installed on this machine (see scripts/build.ts).
 //
 //   npm version <version>   bump package.json and manifest.json, commit and tag
 //   git push --follow-tags  and wait for CI to pass on main

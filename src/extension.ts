@@ -284,7 +284,7 @@ async function writeIntoProject(
   data: StrudelData,
 ): Promise<string> {
   // The only place besides the storage directory the extension may write to.
-  // Live always gives one; in development, start.ts does.
+  // Live always gives one; in development, scripts/start.ts does.
   const { tempDirectory } = context.environment;
   if (!tempDirectory) throw new Error("The Extension Host has no temp directory to render into.");
   fs.mkdirSync(tempDirectory, { recursive: true });
