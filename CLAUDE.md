@@ -10,6 +10,8 @@ audio clips. See README.md for usage and the scripts.
   - `server.ts`: local HTTP server that serves the editor dialog and receives
     renders.
   - `wav.ts`: 32-bit float WAV writer/reader with the `strd` chunk.
+  - `clipStore.ts`: each clip's Strudel data in the storage directory, found
+    by the ID that starts its file name.
   - `protocol.ts`: the host/UI contract (`SessionInput`, API paths,
     `BEATS_PER_CYCLE`), shared with `ui/`. Change both sides through it.
   - `renderBody.ts`: the render upload format, shared with `ui/`.
@@ -35,11 +37,13 @@ audio clips. See README.md for usage and the scripts.
 ## Design decisions
 
 - A clip's Strudel code is stored in a custom `strd` RIFF chunk inside its WAV,
-  so the clip carries its own code. This survives
+  so the clip carries its own code and it travels with the Set. This survives
   `resources.importIntoProject` (verified in Live 12.4). An installed extension
-  can't read the project's files, though (see Gotchas), so editing will also
-  need a copy in the extension's storage directory (#52): sidecar data there is
-  fine. The SDK has no per-clip or per-project storage.
+  can't read the project's files, though (see Gotchas), so editing reads a copy
+  from the storage directory (`clipStore.ts`), keyed by the UUID that starts
+  the WAV's file name (`strudel-<id>….wav`). That copy is per machine: editing
+  a clip rendered elsewhere needs a way to read its chunk (#52). Keep writing
+  both. The SDK has no per-clip or per-project storage.
 - An audio clip's file can't be swapped, so editing replaces the clip with a
   new one in the same place. This stops a playing Session clip; that's
   accepted, since the tool is for producing rather than live performance.

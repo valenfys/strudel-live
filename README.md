@@ -28,7 +28,9 @@ Learn about building extensions: https://ableton.github.io/extensions-sdk/
   [Scenes](#scenes)), which adds two scenes below the slot and a track per part.
 - Right-click a Strudel audio clip → **Edit Strudel…** to change its code and
   re-render it. The clip is replaced in place, keeping its color (a playing
-  Session clip stops).
+  Session clip stops). For now this only works on the machine the clip was
+  rendered on: Live doesn't let extensions read the clip's file, where its code
+  is kept, so the extension keeps its own copy.
 
 ### Stems
 
