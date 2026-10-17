@@ -1,5 +1,4 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import {
@@ -266,9 +265,10 @@ async function writeIntoProject(
   samples: Float32Array,
   data: StrudelData,
 ): Promise<string> {
-  // Live only provides a temp directory when the host is given one, which
-  // `ableton-extensions-cli run` doesn't do by default.
-  const tempDirectory = context.environment.tempDirectory ?? path.join(os.tmpdir(), "strudel-live");
+  // The only place besides the storage directory the extension may write to.
+  // Live always gives one; in development, start.ts does.
+  const { tempDirectory } = context.environment;
+  if (!tempDirectory) throw new Error("The Extension Host has no temp directory to render into.");
   fs.mkdirSync(tempDirectory, { recursive: true });
   const scene = data.scene === undefined ? undefined : data.scenes?.[data.scene];
   const name = [scene, data.clip ?? data.stem]

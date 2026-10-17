@@ -18,7 +18,8 @@ Learn about building extensions: https://ableton.github.io/extensions-sdk/
   install moves. The build also uses it to bundle Live's themes and fonts into
   the extension (`dist/live`); without it the editor uses built-in colours.
 - Turn on **Developer Mode** in Live's settings, or `npm start` will fail with
-  "Failed to connect to Live within 10s".
+  "Failed to connect to Live within 10s". Turn it off again to try an installed
+  `.ablx`: in Developer Mode, Live doesn't run installed extensions.
 
 ## Usage
 
@@ -97,7 +98,7 @@ scenes({
 ## Scripts
 
 ```sh
-npm start                  # build + run in Live's Extension Host
+npm start                  # build + run in Live's Extension Host, restricted as when installed
 npm run build              # production build of the extension and UI
 npm run build:dev          # dev build (sourcemaps, not minified)
 npm run package            # build for production + create a .ablx archive (needs EXTENSION_HOST_PATH)
