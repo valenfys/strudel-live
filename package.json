@@ -8,9 +8,9 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p ui && tsc -p test",
-    "build": "npm run typecheck && vite build && tsx build.ts --production",
-    "build:dev": "npm run typecheck && vite build --mode development && tsx build.ts",
-    "start": "npm run build:dev && tsx start.ts",
+    "build": "npm run typecheck && vite build && tsx scripts/build.ts --production",
+    "build:dev": "npm run typecheck && vite build --mode development && tsx scripts/build.ts",
+    "start": "npm run build:dev && tsx scripts/start.ts",
     "package": "npm run build -- --require-live && ableton-extensions-cli package -i dist/ui -i dist/live",
     "postinstall": "patch-package",
     "test": "vitest run",
@@ -18,7 +18,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm test"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+    "version": "tsx scripts/release.ts --sync-manifest && git add manifest.json",
+    "release": "tsx scripts/release.ts"
   },
   "dependencies": {
     "@ableton-extensions/sdk": "file:./vendor/ableton-extensions-sdk-1.0.0-beta.1.tgz",

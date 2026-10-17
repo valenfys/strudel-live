@@ -5,7 +5,8 @@ audio clips. See README.md for usage and the scripts.
 
 ## Layout
 
-- `src/` runs in Live's Extension Host (Node, bundled to CJS by `build.ts`).
+- `src/` runs in Live's Extension Host (Node, bundled to CJS by
+  `scripts/build.ts`).
   - `extension.ts`: context menu actions, placing rendered clips in Live.
   - `server.ts`: local HTTP server that serves the editor dialog and receives
     renders.
@@ -28,6 +29,9 @@ audio clips. See README.md for usage and the scripts.
   - `bridge.ts`: Live's dialog bridge (`closeWithResult`).
 - `test/unit/` (Vitest) and `test/e2e/` (Playwright against the real editor
   server, with Live's dialog bridge stubbed out).
+- `scripts/` holds the build (`build.ts`), `npm start` (`start.ts`) and
+  `npm run release` (`release.ts`: publishes a GitHub release with the `.ablx`,
+  locally since it needs Live; see README's Releasing).
 - `ci/ableton-sdk-stub/` stands in for the proprietary SDK in CI
   (`.github/workflows/ci.yml`). If `src/` imports more from the SDK, extend
   the stub or CI's typecheck fails.
@@ -70,9 +74,10 @@ audio clips. See README.md for usage and the scripts.
   its `storageDirectory` and `tempDirectory`, write access to the last two.
   Anything else (Live's own resources, the project's audio files) throws
   `ERR_ACCESS_DENIED`, even `fs.existsSync`. Bundle what's needed at build time
-  instead (as `build.ts` does with Live's themes). `start.ts` (`npm start`)
-  applies the same restrictions, so this shows up in development; if Live's
-  flags change, update it to match (see them with `ps` while Live runs).
+  instead (as `scripts/build.ts` does with Live's themes). `scripts/start.ts`
+  (`npm start`) applies the same restrictions, so this shows up in
+  development; if Live's flags change, update it to match (see them with `ps`
+  while Live runs).
 - **`npm start` fails with "Failed to connect to Live within 10s"** unless
   Developer Mode is on in Live's settings. Check that first. Conversely, with
   Developer Mode on Live doesn't run installed `.ablx` extensions at all.
