@@ -28,6 +28,8 @@ audio clips. See README.md for usage and the scripts.
   - `bridge.ts`: Live's dialog bridge (`closeWithResult`).
 - `test/unit/` (Vitest) and `test/e2e/` (Playwright against the real editor
   server, with Live's dialog bridge stubbed out).
+- `release.ts` (`npm run release`) publishes a GitHub release with the
+  `.ablx`, locally since it needs Live (see README's Releasing).
 - `ci/ableton-sdk-stub/` stands in for the proprietary SDK in CI
   (`.github/workflows/ci.yml`). If `src/` imports more from the SDK, extend
   the stub or CI's typecheck fails.

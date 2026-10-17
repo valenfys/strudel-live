@@ -107,12 +107,30 @@ npm run package            # build for production + create a .ablx archive (need
 npm test                   # unit tests (Vitest)
 npm run check              # typecheck + lint + format check + unit tests
 npm run test:e2e           # build the UI + run the editor's browser tests (Playwright)
+npm run release            # package the .ablx and publish it as a GitHub release
 ```
 
 The browser tests drive the editor dialog in headless Chromium against the
 real editor server, standing in for Live's dialog bridge. Install the browser
 once with `npx playwright install chromium`. Anything that needs Live itself
 still has to be checked by hand with `npm start`.
+
+## Releasing
+
+Releases are published from a Mac with Live installed, not from CI: the
+`.ablx` bundles Live's themes and fonts from the Live in `EXTENSION_HOST_PATH`.
+
+```sh
+npm version 0.2.0 -m "Set the version to %s"  # bumps package.json and manifest.json, commits and tags v0.2.0
+git push --follow-tags                         # then wait for CI to pass on main
+npm run release                                # packages Strudel-Live-0.2.0.ablx and publishes the release
+```
+
+`npm run release` checks that `main` is clean, pushed and green in CI and that
+the version isn't released yet, then packages the `.ablx`, pushes the tag (or
+creates it, if you bumped the version by hand) and creates the GitHub release
+with the `.ablx` attached and notes generated from the merged PRs. Pass
+`-- --draft` to review the release before publishing it, or `-- --prerelease`.
 
 ## License
 
