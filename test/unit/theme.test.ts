@@ -4,7 +4,7 @@ import * as path from "node:path";
 import { TextEncoder } from "node:util";
 import { describe, expect, it } from "vitest";
 import { runEditorSession } from "../../src/server";
-import { cssVariable, findLiveResources, parseTheme, themeCss } from "../../src/theme";
+import { bundleLiveAssets, cssVariable, findLiveResources, parseTheme, themeCss } from "../../src/theme";
 import { request } from "./request";
 
 // Made-up themes in the shape of Live's .ask files.
@@ -75,19 +75,36 @@ describe("themeCss", () => {
 });
 
 describe("findLiveResources", () => {
-  it("finds Live's resources from the Extension Host inside it", () => {
+  it("finds Live's resources from the Extension Host inside it, or from Live.app", () => {
     const { root, resources } = liveResources();
-    const execPath = path.join(root, "Live.app/Contents/Helpers/ExtensionHost/node");
-    expect(findLiveResources(execPath)).toBe(resources);
+    const hostModule = path.join(root, "Live.app/Contents/Helpers/ExtensionHost/ExtensionHostNodeModule.node");
+    expect(findLiveResources(hostModule)).toBe(resources);
+    expect(findLiveResources(path.join(root, "Live.app"))).toBe(resources);
     expect(findLiveResources(path.join(os.tmpdir(), "node"))).toBeUndefined();
   });
 });
 
-describe("the editor server's theme", () => {
-  it("serves Live's themes and fonts, and saves the chosen theme", async () => {
+describe("bundleLiveAssets", () => {
+  it("bundles every theme's colours and the fonts the editor uses", () => {
     const { root, resources } = liveResources();
+    const outDir = path.join(root, "dist", "live");
+    expect(bundleLiveAssets(resources, outDir)).toEqual({ themes: 3, fonts: 1 });
+    expect(JSON.parse(fs.readFileSync(path.join(outDir, "themes.json"), "utf8")).Riparian).toEqual({
+      SurfaceBackground: "#123456",
+      ControlBackground: "#11223344",
+    });
+    expect(fs.readdirSync(path.join(outDir, "fonts"))).toEqual(["AbletonSansSmall-Regular.ttf"]);
+  });
+});
+
+describe("the editor server's theme", () => {
+  it("serves the bundled themes and fonts, and saves the chosen theme", async () => {
+    const { root, resources } = liveResources();
+    const liveAssets = path.join(root, "dist", "live");
+    bundleLiveAssets(resources, liveAssets);
+    fs.writeFileSync(path.join(liveAssets, "fonts", "Secret.ttf"), "not served");
     const settingsFile = path.join(root, "storage", "settings.json");
-    const options = { uiRoot: root, liveResources: resources, settingsFile };
+    const options = { uiRoot: root, liveAssets, settingsFile };
 
     await runEditorSession(
       { code: "", cycles: 1, bpm: 120, view: "session" },

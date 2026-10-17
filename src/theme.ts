@@ -1,24 +1,64 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-// Live's themes (.ask XML files) and fonts ship inside Live itself, so they're
-// read from the running Live rather than copied into this repo: they're
-// Ableton's. The Extension Host's node binary lives inside Live
-// (Live.app/Contents/Helpers/ExtensionHost/node on macOS), so they're found by
-// walking up from it.
+// Live's themes (.ask XML files) and fonts ship inside Live itself. The
+// installed extension can't read them there: Live runs it under Node's
+// permission model, with read access only to the extension's own directory and
+// its storage and temp directories. So the build (build.ts) reads them from the
+// Live that EXTENSION_HOST_PATH points at and bundles them next to the
+// extension, in the layout of LIVE_ASSETS, for the editor server to serve.
 
 /** Live's standard themes, used when the user hasn't chosen one. */
 export const STANDARD_THEMES = { light: "Default Light Neutral Medium", dark: "Default Dark Neutral Medium" };
 
-/** Where Live keeps its resources: App-Resources on macOS, Resources on Windows. */
-export function findLiveResources(execPath = process.execPath): string | undefined {
-  for (let dir = path.dirname(execPath); dir !== path.dirname(dir); dir = path.dirname(dir)) {
-    for (const name of ["App-Resources", "Resources"]) {
+/** The bundled Live assets, relative to their directory (dist/live). */
+export const LIVE_ASSETS = {
+  /** Every theme's colours, as `{ [theme]: { [name]: colour } }`. */
+  themes: "themes.json",
+  /** The font files in FONT_FILES. */
+  fonts: "fonts",
+};
+
+/**
+ * Where Live keeps its resources (App-Resources on macOS, Resources on
+ * Windows), given a path inside Live or to Live itself: the Extension Host
+ * module, its node binary, or Live.app.
+ */
+export function findLiveResources(livePath: string): string | undefined {
+  for (let dir = livePath; dir !== path.dirname(dir); dir = path.dirname(dir)) {
+    for (const name of ["App-Resources", "Contents/App-Resources", "Resources"]) {
       const candidate = path.join(dir, name);
       if (fs.existsSync(path.join(candidate, "Themes"))) return candidate;
     }
   }
   return undefined;
+}
+
+/** Bundles the themes and fonts from Live's resources into `outDir`, in the layout of LIVE_ASSETS. */
+export function bundleLiveAssets(resources: string, outDir: string): { themes: number; fonts: number } {
+  const themesDirectory = path.join(resources, "Themes");
+  const themes = Object.fromEntries(
+    listThemes(themesDirectory).map((name) => [
+      name,
+      Object.fromEntries(parseTheme(fs.readFileSync(path.join(themesDirectory, `${name}.ask`), "utf8"))),
+    ]),
+  );
+  fs.mkdirSync(path.join(outDir, LIVE_ASSETS.fonts), { recursive: true });
+  fs.writeFileSync(path.join(outDir, LIVE_ASSETS.themes), JSON.stringify(themes));
+  let fonts = 0;
+  for (const file of Object.keys(FONT_FILES)) {
+    const source = path.join(resources, "Fonts", file);
+    if (!fs.existsSync(source)) continue;
+    fs.copyFileSync(source, path.join(outDir, LIVE_ASSETS.fonts, file));
+    fonts++;
+  }
+  return { themes: Object.keys(themes).length, fonts };
+}
+
+/** Reads bundled themes (LIVE_ASSETS.themes), by name. */
+export function readBundledThemes(file: string): Map<string, Map<string, string>> {
+  const themes: Record<string, Record<string, string>> = JSON.parse(fs.readFileSync(file, "utf8"));
+  return new Map(Object.entries(themes).map(([name, colors]) => [name, new Map(Object.entries(colors))]));
 }
 
 /** The names of the themes in a Themes directory, sorted. */

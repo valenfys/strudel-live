@@ -15,9 +15,11 @@ Learn about building extensions: https://ableton.github.io/extensions-sdk/
 
 - The path to Ableton Live's Extension Host module is stored in `.env` as
   `EXTENSION_HOST_PATH`. The generator filled this in for you; edit it if your
-  install moves.
+  install moves. The build also uses it to bundle Live's themes and fonts into
+  the extension (`dist/live`); without it the editor uses built-in colours.
 - Turn on **Developer Mode** in Live's settings, or `npm start` will fail with
-  "Failed to connect to Live within 10s".
+  "Failed to connect to Live within 10s". Turn it off again to try an installed
+  `.ablx`: in Developer Mode, Live doesn't run installed extensions.
 
 ## Usage
 
@@ -26,7 +28,9 @@ Learn about building extensions: https://ableton.github.io/extensions-sdk/
   [Scenes](#scenes)), which adds two scenes below the slot and a track per part.
 - Right-click a Strudel audio clip → **Edit Strudel…** to change its code and
   re-render it. The clip is replaced in place, keeping its color (a playing
-  Session clip stops).
+  Session clip stops). For now this only works on the machine the clip was
+  rendered on: Live doesn't let extensions read the clip's file, where its code
+  is kept, so the extension keeps its own copy.
 
 ### Stems
 
@@ -96,10 +100,10 @@ scenes({
 ## Scripts
 
 ```sh
-npm start                  # build + run in Live's Extension Host
+npm start                  # build + run in Live's Extension Host, restricted as when installed
 npm run build              # production build of the extension and UI
 npm run build:dev          # dev build (sourcemaps, not minified)
-npm run package            # build for production + create a .ablx archive
+npm run package            # build for production + create a .ablx archive (needs EXTENSION_HOST_PATH)
 npm test                   # unit tests (Vitest)
 npm run check              # typecheck + lint + format check + unit tests
 npm run test:e2e           # build the UI + run the editor's browser tests (Playwright)

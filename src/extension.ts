@@ -1,5 +1,4 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import {
@@ -14,7 +13,8 @@ import {
 import { BEATS_PER_CYCLE, type SessionInput } from "./protocol.js";
 import { STARTER_CODE, STARTER_CYCLES } from "./starter.js";
 import { runEditorSession, type RenderResult } from "./server.js";
-import { encodeStrudelWav, readStrudelData, type StrudelData } from "./wav.js";
+import { ClipStore, clipFilePrefix, clipIdOf, newClipId } from "./clipStore.js";
+import { encodeStrudelWav, type StrudelData } from "./wav.js";
 
 type Context = ExtensionContext<"1.0.0">;
 
@@ -59,12 +59,16 @@ async function newClip(context: Context, slot: ClipSlot<"1.0.0">) {
 }
 
 async function editClip(context: Context, clip: AudioClip<"1.0.0">) {
-  const existing = readStrudelData(fs.readFileSync(clip.filePath));
+  const store = clipStore(context);
+  const existing = store.load(clip.filePath);
   if (!existing) {
-    console.warn(`Not a Strudel clip: ${clip.filePath}`);
+    console.warn(
+      clipIdOf(clip.filePath)
+        ? `This clip's code is only in its file, which extensions can't read: it was rendered on another machine. ${clip.filePath}`
+        : `Not a Strudel clip: ${clip.filePath}`,
+    );
     return;
   }
-  console.log(`Read Strudel code from ${clip.filePath}`);
   const parent = clip.parent;
   // Where the group starts: the row of its first scene, or the clip's position
   // in the Arrangement (which has no scenes).
@@ -84,7 +88,9 @@ async function editClip(context: Context, clip: AudioClip<"1.0.0">) {
     return;
   }
   // Editing one stem re-renders the whole group.
-  const current = existing.group ? findGroup(context, base, rows, existing.group) : [{ track, clip, data: existing }];
+  const current = existing.group
+    ? findGroup(context, store, base, rows, existing.group)
+    : [{ track, clip, data: existing }];
   const result = await edit(context, existing, "row" in base ? "session" : "arrangement");
   if (result) await place(context, base, rows, result, current, track);
 }
@@ -104,7 +110,7 @@ interface Placed {
 }
 
 /** The clips of a stems group in the `rows` rows from `base`, or at `base` in the Arrangement. */
-function findGroup(context: Context, base: Position, rows: number, group: string): Placed[] {
+function findGroup(context: Context, store: ClipStore, base: Position, rows: number, group: string): Placed[] {
   const found: Placed[] = [];
   const positions = "row" in base ? Array.from({ length: rows }, (_, i) => offset(base, i)) : [base];
   for (const track of context.application.song.tracks) {
@@ -112,7 +118,7 @@ function findGroup(context: Context, base: Position, rows: number, group: string
     for (const position of positions) {
       const clip = clipAt(track, position);
       if (!(clip instanceof AudioClip)) continue;
-      const data = readStrudelData(fs.readFileSync(clip.filePath));
+      const data = store.load(clip.filePath);
       if (data?.group === group) found.push({ track, clip, data });
     }
   }
@@ -255,26 +261,39 @@ async function edit(
       scene: result.stems?.[i].scene,
       scenes: result.scenes,
     };
-    rendered.push({ filePath: await writeIntoProject(context, result, samples, data), data });
+    const id = newClipId();
+    rendered.push({ filePath: await writeIntoProject(context, id, result, samples, data), data });
+    clipStore(context).save(id, data);
   }
   return { rendered, scenes: result.scenes };
 }
 
+/** Where clips' Strudel data is kept: the extension can't read it back from their files (see clipStore.ts). */
+function clipStore(context: Context): ClipStore {
+  const { storageDirectory } = context.environment;
+  if (!storageDirectory) throw new Error("The Extension Host has no storage directory to keep clips' code in.");
+  return new ClipStore(path.join(storageDirectory, "clips"));
+}
+
+/** Writes a clip's WAV, with its Strudel data in a `strd` chunk, and imports it into the project. */
 async function writeIntoProject(
   context: Context,
+  id: string,
   result: RenderResult,
   samples: Float32Array,
   data: StrudelData,
 ): Promise<string> {
-  // Live only provides a temp directory when the host is given one, which
-  // `ableton-extensions-cli run` doesn't do by default.
-  const tempDirectory = context.environment.tempDirectory ?? path.join(os.tmpdir(), "strudel-live");
+  // The only place besides the storage directory the extension may write to.
+  // Live always gives one; in development, start.ts does.
+  const { tempDirectory } = context.environment;
+  if (!tempDirectory) throw new Error("The Extension Host has no temp directory to render into.");
   fs.mkdirSync(tempDirectory, { recursive: true });
   const scene = data.scene === undefined ? undefined : data.scenes?.[data.scene];
   const name = [scene, data.clip ?? data.stem]
     .map((part) => (part ? `-${part.replace(/[^\w-]+/g, "_")}` : ""))
     .join("");
-  const fileName = `strudel-${randomUUID().slice(0, 8)}${name}-${Math.round(data.bpm)}bpm.wav`;
+  // The ID starts the name, so the clip's data can be found from its path (see clipStore.ts).
+  const fileName = `${clipFilePrefix(id)}${name}-${Math.round(data.bpm)}bpm.wav`;
   const tempPath = path.join(tempDirectory, fileName);
   fs.writeFileSync(tempPath, encodeStrudelWav(samples, result.sampleRate, result.channels, data));
   const imported = await context.resources.importIntoProject(tempPath);

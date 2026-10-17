@@ -11,3 +11,5 @@ vendor/
 
 test-results/
 playwright-report/
+
+.extension-host/

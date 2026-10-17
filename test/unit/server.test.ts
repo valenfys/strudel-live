@@ -31,7 +31,7 @@ describe("runEditorSession", () => {
         expect((await request(`${origin}/api/render${session}`, "POST", body)).status).toBe(204);
         return "rendered";
       },
-      { uiRoot: os.tmpdir(), liveResources: null },
+      { uiRoot: os.tmpdir(), liveAssets: null },
     );
 
     expect(result).toMatchObject(header);

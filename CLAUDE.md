@@ -10,12 +10,15 @@ audio clips. See README.md for usage and the scripts.
   - `server.ts`: local HTTP server that serves the editor dialog and receives
     renders.
   - `wav.ts`: 32-bit float WAV writer/reader with the `strd` chunk.
+  - `clipStore.ts`: each clip's Strudel data in the storage directory, found
+    by the ID that starts its file name.
   - `protocol.ts`: the host/UI contract (`SessionInput`, API paths,
     `BEATS_PER_CYCLE`), shared with `ui/`. Change both sides through it.
   - `renderBody.ts`: the render upload format, shared with `ui/`.
   - `starter.ts`: the code a new clip starts with.
-  - `theme.ts`: reads Live's theme (`.ask`) files and fonts from the running
-    Live and turns them into CSS for the dialog (`--live-*` properties).
+  - `theme.ts`: Live's themes (`.ask` files) and fonts, bundled at build time
+    into `dist/live` from the Live in `EXTENSION_HOST_PATH` and turned into CSS
+    for the dialog (`--live-*` properties).
 - `ui/` is the editor dialog (Vite, runs in Live's web view).
   - `main.ts`: DOM wiring and editor setup.
   - `stems.ts`: splits a pattern's events by label, one stem each.
@@ -34,10 +37,13 @@ audio clips. See README.md for usage and the scripts.
 ## Design decisions
 
 - A clip's Strudel code is stored in a custom `strd` RIFF chunk inside its WAV,
-  so the clip is its own source of truth. This survives
-  `resources.importIntoProject` (verified in Live 12.4). Build on the chunk
-  (e.g. add fields to its JSON) rather than proposing sidecar files: the SDK has
-  no per-clip or per-project storage.
+  so the clip carries its own code and it travels with the Set. This survives
+  `resources.importIntoProject` (verified in Live 12.4). An installed extension
+  can't read the project's files, though (see Gotchas), so editing reads a copy
+  from the storage directory (`clipStore.ts`), keyed by the UUID that starts
+  the WAV's file name (`strudel-<id>….wav`). That copy is per machine: editing
+  a clip rendered elsewhere needs a way to read its chunk (#52). Keep writing
+  both. The SDK has no per-clip or per-project storage.
 - An audio clip's file can't be swapped, so editing replaces the clip with a
   new one in the same place. This stops a playing Session clip; that's
   accepted, since the tool is for producing rather than live performance.
@@ -59,8 +65,19 @@ audio clips. See README.md for usage and the scripts.
   flags these globals in `src/`, and `test/unit/server.test.ts` stubs them away;
   if Live turns out to lack more, add them to both lists (`MISSING_IN_LIVE` in
   `eslint.config.js` and the test).
+- **Installed extensions may only touch their own files.** Live runs them
+  under Node's permission model: read access to the extension's directory and
+  its `storageDirectory` and `tempDirectory`, write access to the last two.
+  Anything else (Live's own resources, the project's audio files) throws
+  `ERR_ACCESS_DENIED`, even `fs.existsSync`. Bundle what's needed at build time
+  instead (as `build.ts` does with Live's themes). `start.ts` (`npm start`)
+  applies the same restrictions, so this shows up in development; if Live's
+  flags change, update it to match (see them with `ps` while Live runs).
 - **`npm start` fails with "Failed to connect to Live within 10s"** unless
-  Developer Mode is on in Live's settings. Check that first.
+  Developer Mode is on in Live's settings. Check that first. Conversely, with
+  Developer Mode on Live doesn't run installed `.ablx` extensions at all.
+- Live-hosted Extension Host logs, with the extension's console output, go to
+  `~/Library/Preferences/Ableton/Live x.x.x/ExtensionHost.txt` on macOS.
 - The Ableton SDK and CLI are proprietary and installed from `vendor/`
   (gitignored). Never commit them. `vendor/` also holds the rest of the SDK
   zip: the guides (`vendor/docs/`, HTML), the API reference (`vendor/api/`)
