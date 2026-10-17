@@ -11,7 +11,7 @@
     "build": "npm run typecheck && vite build && tsx build.ts --production",
     "build:dev": "npm run typecheck && vite build --mode development && tsx build.ts",
     "start": "npm run build:dev && ableton-extensions-cli run",
-    "package": "npm run build && ableton-extensions-cli package -i dist/ui",
+    "package": "npm run build -- --require-live && ableton-extensions-cli package -i dist/ui -i dist/live",
     "postinstall": "patch-package",
     "test": "vitest run",
     "test:e2e": "vite build --mode development && playwright test",

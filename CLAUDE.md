@@ -14,8 +14,9 @@ audio clips. See README.md for usage and the scripts.
     `BEATS_PER_CYCLE`), shared with `ui/`. Change both sides through it.
   - `renderBody.ts`: the render upload format, shared with `ui/`.
   - `starter.ts`: the code a new clip starts with.
-  - `theme.ts`: reads Live's theme (`.ask`) files and fonts from the running
-    Live and turns them into CSS for the dialog (`--live-*` properties).
+  - `theme.ts`: Live's themes (`.ask` files) and fonts, bundled at build time
+    into `dist/live` from the Live in `EXTENSION_HOST_PATH` and turned into CSS
+    for the dialog (`--live-*` properties).
 - `ui/` is the editor dialog (Vite, runs in Live's web view).
   - `main.ts`: DOM wiring and editor setup.
   - `stems.ts`: splits a pattern's events by label, one stem each.

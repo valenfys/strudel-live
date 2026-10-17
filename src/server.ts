@@ -15,7 +15,7 @@ import {
   type ThemeSettings,
 } from "./protocol.js";
 import { decodeRenderBody, type RenderResult } from "./renderBody.js";
-import { findLiveResources, FONT_FILES, fontCss, listThemes, parseTheme, STANDARD_THEMES, themeCss } from "./theme.js";
+import { FONT_FILES, fontCss, LIVE_ASSETS, readBundledThemes, STANDARD_THEMES, themeCss } from "./theme.js";
 
 export type { RenderResult } from "./renderBody.js";
 
@@ -40,10 +40,11 @@ export interface ServerOptions {
   /** The built editor UI. Defaults to the ui/ directory next to the bundled extension (dist/ui). */
   uiRoot?: string;
   /**
-   * Live's resources directory, with its themes and fonts. Defaults to the one
-   * of the Live running this Extension Host; null for none.
+   * Live's themes and fonts, as bundled by the build (see LIVE_ASSETS).
+   * Defaults to the live/ directory next to the bundled extension (dist/live);
+   * null for none.
    */
-  liveResources?: string | null;
+  liveAssets?: string | null;
   /** A JSON file to keep the user's settings (the theme) in. Without it they last until Live quits. */
   settingsFile?: string;
 }
@@ -80,19 +81,20 @@ function ensureServer(options: ServerOptions): Promise<number> {
 
 class EditorServer {
   private readonly uiRoot: string;
-  private readonly themesDirectory?: string;
+  private readonly themeColors = new Map<string, Map<string, string>>();
   private readonly fontsDirectory?: string;
   private readonly settingsFile?: string;
   private settings: Settings = { theme: null };
 
   constructor(options: ServerOptions) {
     this.uiRoot = path.resolve(options.uiRoot ?? path.join(__dirname, "ui"));
-    const resources = options.liveResources === undefined ? findLiveResources() : options.liveResources;
-    if (resources) {
-      this.themesDirectory = path.join(resources, "Themes");
-      if (fs.existsSync(path.join(resources, "Fonts"))) this.fontsDirectory = path.join(resources, "Fonts");
-    } else {
-      console.warn("Live's themes weren't found; the editor uses its built-in colours.");
+    const assets = options.liveAssets === undefined ? path.join(__dirname, "live") : options.liveAssets;
+    if (assets && fs.existsSync(path.join(assets, LIVE_ASSETS.themes))) {
+      this.themeColors = readBundledThemes(path.join(assets, LIVE_ASSETS.themes));
+      const fonts = path.join(assets, LIVE_ASSETS.fonts);
+      if (fs.existsSync(fonts)) this.fontsDirectory = fonts;
+    } else if (assets !== null) {
+      console.warn("Live's themes weren't bundled with the extension; the editor uses its built-in colours.");
     }
     this.settingsFile = options.settingsFile;
     if (this.settingsFile && fs.existsSync(this.settingsFile)) {
@@ -151,11 +153,11 @@ class EditorServer {
   }
 
   private themes(): string[] {
-    return this.themesDirectory && fs.existsSync(this.themesDirectory) ? listThemes(this.themesDirectory) : [];
+    return [...this.themeColors.keys()];
   }
 
   private readTheme(name: string): Map<string, string> {
-    return parseTheme(fs.readFileSync(path.join(this.themesDirectory!, `${name}.ask`), "utf8"));
+    return this.themeColors.get(name)!;
   }
 
   /** The chosen theme, or else Live's standard light and dark themes, following the system. */

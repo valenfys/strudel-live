@@ -15,7 +15,8 @@ Learn about building extensions: https://ableton.github.io/extensions-sdk/
 
 - The path to Ableton Live's Extension Host module is stored in `.env` as
   `EXTENSION_HOST_PATH`. The generator filled this in for you; edit it if your
-  install moves.
+  install moves. The build also uses it to bundle Live's themes and fonts into
+  the extension (`dist/live`); without it the editor uses built-in colours.
 - Turn on **Developer Mode** in Live's settings, or `npm start` will fail with
   "Failed to connect to Live within 10s".
 
@@ -99,7 +100,7 @@ scenes({
 npm start                  # build + run in Live's Extension Host
 npm run build              # production build of the extension and UI
 npm run build:dev          # dev build (sourcemaps, not minified)
-npm run package            # build for production + create a .ablx archive
+npm run package            # build for production + create a .ablx archive (needs EXTENSION_HOST_PATH)
 npm test                   # unit tests (Vitest)
 npm run check              # typecheck + lint + format check + unit tests
 npm run test:e2e           # build the UI + run the editor's browser tests (Playwright)
